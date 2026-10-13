@@ -15,7 +15,7 @@ export function resolveApiBaseUrl(): string {
   const host = window.location.hostname
   const isLocal = ['localhost', '127.0.0.1'].includes(host)
 
-  let fallback = 'https://api.cliente.com/api'
+  let fallback = 'https://roll-it-backapp.vercel.app/api'
   if (isLocal) fallback = 'http://localhost:8100/api'
   else if (host.includes('-front')) {
     fallback = `${window.location.protocol}//${host.replace('-front', '-back')}/api`
