@@ -32,8 +32,15 @@ const icons: Record<string, string> = {
 <style scoped lang="scss">
 .toasts {
   position: fixed;
-  bottom: 1.4rem;
-  right: 1.4rem;
+  // En el celular sube por encima de la barra de navegación inferior.
+  bottom: calc(5rem + env(safe-area-inset-bottom));
+  right: 1rem;
+
+  @include from('lg') {
+    bottom: 1.4rem;
+    right: 1.4rem;
+  }
+
   @include flex(column, stretch, flex-start, 0.6rem);
   z-index: 300;
   max-width: min(360px, calc(100vw - 2.8rem));
