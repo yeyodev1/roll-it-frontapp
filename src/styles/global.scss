@@ -1,7 +1,356 @@
 // index.scss llega inyectado por Vite (additionalData) — no repetir @use aquí.
 // Este archivo se importa UNA sola vez desde main.ts: acá va todo lo que emite CSS.
+//
+// Clases utilitarias disponibles para cualquier vista:
+//   .page                 contenedor de una vista del panel (columna con aire entre bloques)
+//   .btn                  botón base; variantes --primary --dark --ghost --danger; tamaño --sm;
+//                         --icon para botón cuadrado solo con icono
+//   .card                 superficie blanca con borde y radio; .card__title para su encabezado
+//   .field                label + input/select/textarea apilados; .field__hint y .field__error
+//   .table-wrap           envuelve un <table>: scroll horizontal en móvil y estilo de tabla
+//   .chip                 pastilla seleccionable; .chip--active / [aria-pressed='true']
+//   .muted                texto secundario apagado
+//   .num                  cifras tabulares (columnas de números que no bailan)
+//   .visually-hidden      solo para lectores de pantalla
 
 *,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --font-display: #{$font-display};
+  --font-body: #{$font-principal};
+  --bg: #{$paper};
+  --surface: #{$surface};
+  --text: #{$ink};
+  --text-soft: #{$ink-soft};
+  --accent: #{$accent};
+  --border: #{$line};
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+
+  @include reduced-motion {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: $font-principal;
+  font-size: $text-base;
+  font-weight: 400;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: $font-display;
+  font-weight: 500;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  font-size: 0.95rem;
+  color: $ink;
+  background: $surface;
+  border: 1px solid $line;
+  border-radius: $radius-sm;
+  padding: 0.7rem 0.9rem;
+  width: 100%;
+  outline: none;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+
+  &:focus {
+    border-color: $accent;
+    box-shadow: 0 0 0 3px rgba($accent, 0.15);
+  }
+}
+
+label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: $ink-soft;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+:focus-visible {
+  outline: 2px solid $accent;
+  outline-offset: 2px;
+}
+
+::selection {
+  background: $accent-soft;
+  color: $ink;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  font-family: $font-principal;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  padding: 0.7rem 1.4rem;
+  border-radius: $radius-pill;
+  white-space: nowrap;
+  @include transition;
+
+  &--primary {
+    background: $accent;
+    color: $surface;
+
+    &:hover {
+      background: $accent-deep;
+    }
+  }
+
+  &--dark {
+    background: $ink;
+    color: $surface;
+
+    &:hover {
+      background: $accent-deep;
+    }
+  }
+
+  &--ghost {
+    border: 1px solid $line;
+    background: $surface;
+    color: $ink;
+
+    &:hover {
+      border-color: $ink;
+    }
+  }
+
+  &--danger {
+    background: $danger;
+    color: $surface;
+
+    &:hover {
+      background: darken($danger, 8%);
+    }
+  }
+
+  &--sm {
+    min-height: 2.25rem;
+    font-size: 0.8rem;
+    padding: 0.45rem 0.95rem;
+  }
+
+  &--icon {
+    padding: 0;
+    width: 2.75rem;
+
+    &.btn--sm {
+      width: 2.25rem;
+    }
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+}
+
+.page {
+  @include flex(column, stretch, flex-start, 1.25rem);
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: 1.25rem 1rem 2rem;
+
+  @include from('md') {
+    gap: 1.5rem;
+    padding: 1.75rem 2rem 3rem;
+  }
+}
+
+.card {
+  @include card;
+  padding: 1.1rem 1.1rem 1.25rem;
+  min-width: 0;
+
+  @include from('md') {
+    padding: 1.4rem 1.5rem 1.5rem;
+  }
+
+  &__title {
+    @include flex(row, center, flex-start, 0.4rem);
+    font-family: $font-principal;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: $ink;
+    margin-bottom: 1rem;
+  }
+}
+
+.field {
+  @include flex(column, stretch, flex-start, 0.35rem);
+  min-width: 0;
+
+  > label {
+    margin-bottom: 0;
+  }
+
+  &__hint {
+    font-size: $text-xs;
+    color: $ink-muted;
+  }
+
+  &__error {
+    font-size: $text-xs;
+    color: $danger;
+  }
+}
+
+textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+select {
+  appearance: none;
+  padding-right: 2.2rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, $ink-soft 50%),
+    linear-gradient(135deg, $ink-soft 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.1rem) 52%,
+    calc(100% - 0.75rem) 52%;
+  background-size: 0.35rem 0.35rem;
+  background-repeat: no-repeat;
+}
+
+.table-wrap {
+  @include card;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    font-size: $text-sm;
+  }
+
+  th {
+    text-align: left;
+    font-size: $text-xs;
+    font-weight: 600;
+    color: $ink-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid $line;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid $line;
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover {
+    background: rgba($sand, 0.5);
+  }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: $radius-pill;
+  border: 1px solid $line;
+  background: $surface;
+  color: $ink-soft;
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  @include transition;
+
+  &:hover {
+    border-color: $ink-muted;
+    color: $ink;
+  }
+
+  &--active,
+  &[aria-pressed='true'] {
+    background: $ink;
+    border-color: $ink;
+    color: $surface;
+  }
+}
+
+.muted {
+  color: $ink-muted;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.visually-hidden solo para lectores de pantalla *,
 *::before,
 *::after {
   margin: 0;
