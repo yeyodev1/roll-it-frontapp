@@ -3,10 +3,11 @@ import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
 import { dashboardService } from '@/services/dashboard.service'
 import { useDashboardData } from './useDashboardData'
-import { formatCents, formatQty } from '@/utils/format'
+import { useFiltersStore } from '@/stores/filters'
+import { formatCents, formatDate, formatQty } from '@/utils/format'
 import type { KpiTone } from '@/components/ui/KpiCard.vue'
 import type { BadgeTone } from '@/components/ui/AppBadge.vue'
-import type { WaiterStats } from '@/types'
+import type { WaiterMetric, WaiterStats } from '@/types'
 
 export type WaiterView = 'all' | 'attention' | 'top'
 export type Trend = 'up' | 'down' | 'flat'
@@ -30,11 +31,34 @@ function cmp(value: number, base: number): Trend {
   return Math.abs(diff) < 0.03 ? 'flat' : diff > 0 ? 'up' : 'down'
 }
 
+// Un día 'YYYY-MM-DD' a mediodía de Ecuador: a medianoche UTC se pintaría el día anterior.
+const dayLabel = (key: string) => formatDate(`${key}T12:00:00-05:00`)
+
 /** Meseros listos para pintar: KPIs del equipo, ranking filtrable y reparto por nivel. */
 export function useWaiters() {
   const state = useDashboardData(dashboardService.waiters.bind(dashboardService))
   const { data } = state
+  const filters = useFiltersStore()
   const view = ref<WaiterView>('all')
+
+  // Con el cierre de mes no hay venta en $ por mesera: esas columnas y KPIs se ocultan, no van en cero.
+  const metrics = computed<WaiterMetric[]>(
+    () => data.value?.metrics ?? ['avgTicket', 'ticketsPerDay', 'itemsPerTicket'],
+  )
+  const fromClosings = computed(() => data.value?.source === 'closings')
+  const perTicketLabel = computed(() =>
+    fromClosings.value ? copy.perTicketClosing : copy.perTicket,
+  )
+
+  // Rango vacío pero con cierres cargados en otras fechas: se ofrece ir a ellas.
+  const closings = computed(() => {
+    const r = data.value?.closingsRange
+    if (!r || data.value?.waiters.length) return null
+    return { ...r, text: copy.noDataRangeText(dayLabel(r.from), dayLabel(r.to)) }
+  })
+  function jumpToClosings() {
+    if (closings.value) filters.setRange(closings.value.from, closings.value.to)
+  }
 
   // El puesto se fija por puntaje antes de filtrar: no cambia al filtrar.
   const ranked = computed(() =>
@@ -77,8 +101,8 @@ export function useWaiters() {
         tone: LEVEL_TONE[s.level],
         color: LEVEL_COLOR[s.level],
         score: Math.round(Math.min(Math.max(s.score, 0), 100)),
-        avgTicket: formatCents(s.avgTicketCents),
-        avgTrend: cmp(s.avgTicketCents, t.avgTicketCents),
+        avgTicket: s.avgTicketCents === null ? '—' : formatCents(s.avgTicketCents),
+        avgTrend: cmp(s.avgTicketCents ?? 0, t.avgTicketCents ?? 0),
         perDay: formatQty(s.ticketsPerDay),
         perDayTrend: cmp(s.ticketsPerDay, t.ticketsPerDay),
         perTicket: formatQty(s.itemsPerTicket),
@@ -90,8 +114,9 @@ export function useWaiters() {
   const kpis = computed(() => {
     const t = team.value
     if (!t) return []
-    return [
+    const cards = [
       {
+        key: 'evaluated',
         label: copy.evaluated,
         value: formatQty(counts.value.all),
         sub: copy.evaluatedSub(counts.value.top, counts.value.attention),
@@ -100,14 +125,16 @@ export function useWaiters() {
         tone: 'ink' as KpiTone,
       },
       {
+        key: 'avgTicket',
         label: copy.avgTicket,
-        value: formatCents(t.avgTicketCents),
+        value: formatCents(t.avgTicketCents ?? 0),
         help: site.help.avgTicket,
         icon: 'fa-solid fa-receipt',
         tone: 'accent' as KpiTone,
         sub: copy.teamAvgSub,
       },
       {
+        key: 'ticketsPerDay',
         label: copy.perDay,
         value: formatQty(t.ticketsPerDay),
         help: site.help.perDay,
@@ -116,7 +143,8 @@ export function useWaiters() {
         sub: copy.teamAvgSub,
       },
       {
-        label: copy.perTicket,
+        key: 'itemsPerTicket',
+        label: perTicketLabel.value,
         value: formatQty(t.itemsPerTicket),
         help: site.help.perTicket,
         icon: 'fa-solid fa-bowl-food',
@@ -124,6 +152,9 @@ export function useWaiters() {
         sub: copy.teamAvgSub,
       },
     ]
+    return cards
+      .filter((c) => c.key === 'evaluated' || metrics.value.includes(c.key as WaiterMetric))
+      .map(({ key: _key, ...card }) => card)
   })
 
   const levels = computed(() =>
@@ -135,5 +166,19 @@ export function useWaiters() {
     })),
   )
 
-  return { ...state, view, tabs, team, rows, kpis, levels, ranked }
+  return {
+    ...state,
+    view,
+    tabs,
+    team,
+    rows,
+    kpis,
+    levels,
+    ranked,
+    metrics,
+    fromClosings,
+    perTicketLabel,
+    closings,
+    jumpToClosings,
+  }
 }
