@@ -207,6 +207,8 @@ export const inventoryCopy = {
     removeTitle: '¿Borrar la receta?',
     removeMessage: 'Las ventas de este plato dejarán de descontar inventario.',
     emptyItems: 'Agrega los insumos que lleva una porción',
+    perPortion: 'Insumos por porción',
+    itemsCount: (n: number) => (n === 1 ? '1 insumo' : `${n} insumos`),
     empty: 'No hay platos con ese filtro',
   },
 
