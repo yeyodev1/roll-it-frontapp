@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import BrandMark from '@/components/ui/BrandMark.vue'
-import { site } from '@/config/site'
+import LoginBrand from '@/components/ui/LoginBrand.vue'
 import { dashboardCopy } from '@/config/dashboardCopy'
 import { useUserStore } from '@/stores/user'
 import { useToastStore } from '@/stores/toast'
@@ -18,6 +17,7 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
+const show = ref(false)
 
 async function submit() {
   error.value = ''
@@ -41,27 +41,52 @@ async function submit() {
 
 <template>
   <section class="login">
-    <div class="login__brand">
-      <BrandMark inverse :size="44" :with-name="false" class="login__mark" />
-      <p class="login__name">{{ site.name }}</p>
-      <p class="login__tagline">{{ site.tagline }}</p>
-      <p class="login__line">{{ copy.brandLine }}</p>
-    </div>
+    <LoginBrand />
 
     <div class="login__side">
       <form class="login__form" @submit.prevent="submit">
         <p class="login__eyebrow">{{ copy.eyebrow }}</p>
         <h1 class="login__title">{{ copy.title }}</h1>
 
-        <label class="field">
-          <span>{{ copy.email }}</span>
-          <input v-model="email" type="email" autocomplete="email" inputmode="email" required />
-        </label>
+        <p class="login__lead">{{ copy.lead }}</p>
 
-        <label class="field">
-          <span>{{ copy.password }}</span>
-          <input v-model="password" type="password" autocomplete="current-password" required />
-        </label>
+        <div class="field">
+          <label for="login-email">{{ copy.email }}</label>
+          <span class="login__input">
+            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+            <input
+              id="login-email"
+              v-model="email"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              required
+            />
+          </span>
+        </div>
+
+        <div class="field">
+          <label for="login-pass">{{ copy.password }}</label>
+          <span class="login__input">
+            <i class="fa-solid fa-lock" aria-hidden="true"></i>
+            <input
+              id="login-pass"
+              v-model="password"
+              :type="show ? 'text' : 'password'"
+              autocomplete="current-password"
+              required
+            />
+            <button
+              type="button"
+              class="login__eye"
+              :aria-label="show ? copy.hide : copy.show"
+              :aria-pressed="show"
+              @click="show = !show"
+            >
+              <i :class="show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" aria-hidden="true"></i>
+            </button>
+          </span>
+        </div>
 
         <Transition name="rise">
           <p v-if="error" class="login__error" role="alert">
@@ -90,73 +115,11 @@ async function submit() {
     flex-direction: row;
   }
 
-  &__brand {
-    position: relative;
-    overflow: hidden;
-    @include flex(column, flex-start, flex-end, 0.35rem);
-    padding: 2.5rem 1.5rem 2rem;
-    min-height: 15rem;
-    background: $ink;
-    color: $paper;
-
-    @include from('lg') {
-      flex: 1 1 50%;
-      padding: 4rem;
-    }
-
-    // Corte de roll gigante que asoma por la esquina: la marca hecha paisaje.
-    &::before {
-      content: '';
-      position: absolute;
-      border-radius: 50%;
-      pointer-events: none;
-      width: 26rem;
-      height: 26rem;
-      right: -9rem;
-      top: -10rem;
-      border: 3.5rem solid lighten($ink, 8%);
-      background:
-        radial-gradient(circle at 42% 46%, rgba($accent, 0.85) 0 15%, transparent 15.5%),
-        radial-gradient(circle at 60% 60%, rgba($success, 0.6) 0 9%, transparent 9.5%),
-        rgba($paper, 0.06);
-
-      @include from('lg') {
-        width: 44rem;
-        height: 44rem;
-        right: -14rem;
-        top: -12rem;
-        border-width: 5rem;
-      }
-    }
-  }
-
-  &__mark {
-    position: relative;
-    margin-bottom: 0.5rem;
-  }
-
-  &__name {
-    position: relative;
-    @include display($display-lg, 600);
-  }
-
-  &__tagline {
-    position: relative;
-    font-size: $text-lg;
-    color: rgba($paper, 0.8);
-  }
-
-  &__line {
-    position: relative;
-    font-size: $text-xs;
-    letter-spacing: 0.08em;
-    color: rgba($paper, 0.5);
-  }
-
   &__side {
     flex: 1;
     @include flex(column, stretch, center);
     padding: 2rem 1.25rem 3rem;
+    background: $canvas;
 
     @include from('lg') {
       flex: 1 1 50%;
@@ -166,19 +129,65 @@ async function submit() {
   }
 
   &__form {
+    @include card;
     @include flex(column, stretch, flex-start, 1rem);
     width: 100%;
-    max-width: 380px;
+    max-width: 420px;
     margin-inline: auto;
+    padding: $sp-6 $sp-5;
 
-    .field span {
+    @include from('md') {
+      padding: $sp-8;
+    }
+  }
+
+  &__lead {
+    margin-top: -0.6rem;
+    font-size: 0.84rem;
+    color: $ink-muted;
+  }
+
+  &__input {
+    position: relative;
+    display: block;
+
+    > i {
+      position: absolute;
+      left: 0.95rem;
+      top: 50%;
+      transform: translateY(-50%);
       font-size: 0.82rem;
-      font-weight: 500;
-      color: $ink-soft;
+      color: $ink-muted;
+      pointer-events: none;
     }
 
     input {
       min-height: 3rem;
+      padding-left: 2.6rem;
+      padding-right: 2.8rem;
+      border-radius: $radius-ctl;
+      background: $canvas;
+      border-color: transparent;
+
+      &:focus {
+        background: $surface;
+      }
+    }
+  }
+
+  &__eye {
+    position: absolute;
+    right: 0.35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    @include flex(row, center, center);
+    width: 2.3rem;
+    height: 2.3rem;
+    border-radius: $radius-ctl;
+    color: $ink-muted;
+
+    &:hover {
+      color: $ink;
     }
   }
 
@@ -188,7 +197,6 @@ async function submit() {
 
   &__title {
     @include display($display-sm, 500);
-    margin-bottom: 0.4rem;
   }
 
   &__error {
