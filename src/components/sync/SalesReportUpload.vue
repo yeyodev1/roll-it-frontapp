@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
 import SalesReportSummary from './SalesReportSummary.vue'
+import SalesUploadProgress from './SalesUploadProgress.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
 import { useFiltersStore } from '@/stores/filters'
@@ -29,8 +30,6 @@ const branchOptions = computed(() => [
   ...filters.branches.map((b) => ({ value: b.slug, label: b.name })),
 ])
 
-const pct = computed(() => Math.round(progress.value * 100))
-const status = computed(() => (phase.value === 'processing' ? copy.processing : copy.uploading))
 const showDrop = computed(
   () => phase.value === 'idle' || (phase.value === 'error' && !result.value),
 )
@@ -118,31 +117,12 @@ function onLeave() {
       </div>
     </template>
 
-    <div v-if="busy && !result" class="srup__busy" aria-live="polite">
-      <span class="srup__file">
-        <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
-        <span>{{ file?.name }}</span>
-      </span>
-      <div
-        class="srup__track"
-        role="progressbar"
-        :aria-valuenow="pct"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        :aria-label="status"
-      >
-        <span
-          class="srup__bar"
-          :class="{ 'srup__bar--wait': phase === 'processing' }"
-          :style="{ transform: `scaleX(${phase === 'processing' ? 1 : progress})` }"
-        ></span>
-      </div>
-      <p class="srup__status">
-        <span>{{ status }}</span>
-        <span v-if="phase === 'uploading'" class="num">{{ pct }}%</span>
-        <span v-else class="muted">{{ copy.processingHint }}</span>
-      </p>
-    </div>
+    <SalesUploadProgress
+      v-if="busy && !result"
+      :name="file?.name ?? ''"
+      :progress="progress"
+      :processing="phase === 'processing'"
+    />
 
     <p v-if="phase === 'error'" class="srup__error" role="alert">
       <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
@@ -236,58 +216,6 @@ function onLeave() {
     max-width: 16rem;
   }
 
-  &__busy {
-    @include flex(column, stretch, flex-start, $sp-2);
-    padding: $sp-5 $sp-4;
-    border-radius: $radius-card;
-    background: $canvas;
-  }
-
-  &__file {
-    @include flex(row, center, flex-start, 0.5rem);
-    font-size: 0.86rem;
-    font-weight: 600;
-    min-width: 0;
-
-    i {
-      color: $success;
-    }
-
-    span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
-
-  &__track {
-    height: 0.5rem;
-    border-radius: $radius-pill;
-    background: $sand;
-    overflow: hidden;
-  }
-
-  &__bar {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: $accent;
-    transform-origin: left;
-    transition: transform 0.25s ease;
-
-    &--wait {
-      background: linear-gradient(90deg, rgba($accent, 0.55), $accent, rgba($accent, 0.55));
-      background-size: 200% 100%;
-      animation: srup-wait 1.4s linear infinite;
-    }
-  }
-
-  &__status {
-    @include flex(row, center, space-between, $sp-2);
-    font-size: 0.78rem;
-    color: $ink-soft;
-  }
-
   &__error {
     @include flex(row, center, flex-start, 0.5rem);
     flex-wrap: wrap;
@@ -302,12 +230,6 @@ function onLeave() {
     margin-left: auto;
     font-weight: 700;
     text-decoration: underline;
-  }
-}
-
-@keyframes srup-wait {
-  to {
-    background-position: -200% 0;
   }
 }
 </style>
