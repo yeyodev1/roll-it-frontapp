@@ -70,33 +70,47 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .tabs {
-  @include flex(row, stretch, flex-start, 0.2rem);
+  @include flex(row, center, flex-start, 0.15rem);
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 0.25rem;
+  border: 1px solid rgba($line, 0.6);
+  border-radius: $radius-pill;
+  background: $surface;
+  box-shadow: $shadow-card;
   overflow-x: auto;
-  border-bottom: 1px solid $line;
   scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   &__tab {
     @include flex(row, center, center, 0.45rem);
     flex: 0 0 auto;
-    padding: 0.7rem 0.9rem;
-    font-size: $text-sm;
+    min-height: 2.15rem;
+    padding: 0 0.95rem;
+    border-radius: $radius-pill;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: $ink-muted;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    @include transition(color);
+    color: $ink-soft;
+    white-space: nowrap;
+    @include transition(background-color);
 
     i {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
+      color: $ink-muted;
     }
 
     &:hover {
+      background: $canvas;
       color: $ink;
     }
 
     &[aria-selected='true'] {
-      color: $ink;
-      border-bottom-color: $accent;
+      background: $ink;
+      color: $surface;
+      box-shadow: 0 2px 6px rgba($ink, 0.18);
 
       i {
         color: $accent;
