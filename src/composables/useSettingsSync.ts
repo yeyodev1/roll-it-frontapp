@@ -7,17 +7,20 @@ export function useSettingsSync() {
   const toast = useToastStore()
   const items = ref<SyncStatus[]>([])
   const loading = ref(false)
+  const error = ref('')
 
   async function load() {
     loading.value = true
+    error.value = ''
     try {
       items.value = await syncService.status()
     } catch (e) {
-      toast.error((e as ApiError).message)
+      error.value = (e as ApiError).message
+      toast.error(error.value)
     } finally {
       loading.value = false
     }
   }
 
-  return { items, loading, load }
+  return { items, loading, error, load }
 }
