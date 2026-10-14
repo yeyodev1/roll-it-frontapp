@@ -2,7 +2,10 @@
 import { onMounted, ref, watch } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import RefreshStamp from '@/components/ui/RefreshStamp.vue'
+import SkeletonTable from '@/components/ui/skeleton/SkeletonTable.vue'
+import SkeletonCards from '@/components/ui/skeleton/SkeletonCards.vue'
 import BranchPicker from '@/components/inventory/BranchPicker.vue'
 import StockCounters from '@/components/inventory/StockCounters.vue'
 import StockAsk from '@/components/inventory/StockAsk.vue'
@@ -16,8 +19,9 @@ import type { StockRow } from '@/types'
 
 const copy = inventoryCopy.stock
 const { branch, branchName, isStaff, ensureBranches } = useInventoryBranch()
-const { rows, counts, loading, status, search, filtered, load, replaceRow, toggleStatus } =
-  useInventoryStock()
+const stock = useInventoryStock()
+const { rows, counts, loading, error, status, search, filtered, updatedAt, refreshing } = stock
+const { load, replaceRow, toggleStatus } = stock
 
 const adjusting = ref<StockRow | null>(null)
 
@@ -36,6 +40,7 @@ onMounted(async () => {
       :help="site.help.stockStatus"
     >
       <template #actions>
+        <RefreshStamp :at="updatedAt" :refreshing="refreshing" />
         <BranchPicker v-if="!isStaff" v-model="branch" allow-all />
       </template>
     </PageHeader>
@@ -55,7 +60,8 @@ onMounted(async () => {
 
     <StockAsk :branch="branch" />
 
-    <StockCounters :counts="counts" :active="status" @toggle="toggleStatus" />
+    <SkeletonCards v-if="loading" :count="4" basis="130px" :lines="0" min-height="4.9rem" />
+    <StockCounters v-else :counts="counts" :active="status" @toggle="toggleStatus" />
 
     <label class="search">
       <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
@@ -63,7 +69,11 @@ onMounted(async () => {
       <input v-model="search" type="search" :placeholder="copy.search" />
     </label>
 
-    <LoadingBlock v-if="loading && !rows.length" />
+    <template v-if="loading">
+      <SkeletonCards class="sk-mobile" :count="4" basis="100%" :lines="2" min-height="8.5rem" />
+      <SkeletonTable class="sk-desk" :rows="8" :cols="5" />
+    </template>
+    <LoadError v-else-if="error && !rows.length" :message="error" @retry="load(branch)" />
     <EmptyState
       v-else-if="!filtered.length"
       icon="fa-solid fa-box-open"
@@ -82,6 +92,19 @@ onMounted(async () => {
 </template>
 
 <style scoped lang="scss">
+// Misma forma que StockList: tarjetas en el celular, tabla en escritorio.
+.sk-mobile {
+  @include from('lg') {
+    display: none;
+  }
+}
+
+.sk-desk {
+  @include until('lg') {
+    display: none;
+  }
+}
+
 .quick {
   @include flex(row, center, flex-start, 0.5rem);
   flex-wrap: wrap;
