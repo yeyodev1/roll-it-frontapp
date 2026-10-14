@@ -2,6 +2,7 @@
 import { toRef } from 'vue'
 import SheetPanel from './SheetPanel.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import StockGauge from './StockGauge.vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
 import { useInventoryAdjust } from '@/composables/useInventoryAdjust'
 import { useUserStore } from '@/stores/user'
@@ -41,9 +42,21 @@ const {
   >
     <template v-if="row">
       <div class="now">
-        <span class="now__label">{{ copy.current }}</span>
+        <span class="now__head">
+          <span class="now__label">{{ copy.current }}</span>
+          <StatusBadge :status="row.status" />
+        </span>
         <span class="now__qty num">{{ formatQty(row.quantity, row.ingredient.unit) }}</span>
-        <StatusBadge :status="row.status" />
+        <StockGauge
+          :quantity="row.quantity"
+          :min="row.minStock"
+          :max="row.maxStock"
+          :status="row.status"
+        />
+        <span class="now__range num">
+          {{ copy.min }} {{ formatQty(row.minStock) }} · {{ copy.max }}
+          {{ formatQty(row.maxStock) }}
+        </span>
       </div>
 
       <div class="types" role="radiogroup" :aria-label="copy.type">
@@ -51,7 +64,7 @@ const {
           v-for="t in copy.types"
           :key="t.value"
           type="button"
-          class="chip"
+          class="types__opt"
           role="radio"
           :aria-checked="type === t.value"
           :aria-pressed="type === t.value"
@@ -130,22 +143,51 @@ const {
 
 <style scoped lang="scss">
 .now {
-  @include flex(row, baseline, flex-start, 0.6rem);
-  flex-wrap: wrap;
+  @include flex(column, stretch, flex-start, 0.45rem);
+  padding: $sp-4;
+  border-radius: $radius-card;
+  background: $canvas;
+
+  &__head {
+    @include flex(row, center, space-between, 0.6rem);
+  }
 
   &__label {
-    @include eyebrow;
-    color: $ink-muted;
+    @include card-label;
   }
 
   &__qty {
-    @include display($display-sm, 500);
+    @include figure(1.9rem);
+  }
+
+  &__range {
+    font-size: 0.72rem;
+    color: $ink-muted;
   }
 }
 
+// Control segmentado: merma o ajuste de conteo, uno u otro.
 .types {
-  @include flex(row, center, flex-start, 0.5rem);
-  flex-wrap: wrap;
+  @include flex(row, stretch, flex-start, 0.15rem);
+  padding: 0.25rem;
+  border-radius: $radius-pill;
+  background: $canvas;
+
+  &__opt {
+    flex: 1;
+    min-height: 2.4rem;
+    border-radius: $radius-pill;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: $ink-soft;
+    @include transition(background-color);
+
+    &[aria-checked='true'] {
+      background: $surface;
+      color: $ink;
+      box-shadow: $shadow-sm;
+    }
+  }
 }
 
 .big {
