@@ -32,7 +32,20 @@ export const dashboardCopy = {
     to: 'Hasta',
     apply: 'Aplicar',
     updated: 'Actualizado',
+    lastSale: 'Última venta',
     neverSynced: 'Sin ventas recibidas',
+  },
+
+  // Mientras SmartMenu no mande ventas en vivo, los datos llegan hasta el último día importado.
+  dataUntil: {
+    label: (day: string) => `Datos hasta el ${day}`,
+    notLive: 'SmartMenu aún no está conectado en vivo',
+  },
+
+  refresh: {
+    updated: 'Actualizado',
+    refreshing: 'Actualizando…',
+    at: (time: string) => `a las ${time}`,
   },
 
   timeAgo: {
@@ -76,6 +89,7 @@ export const dashboardCopy = {
     prevYear: 'Año anterior',
     ytd: 'Acumulado del año',
     ytdLastYear: 'Año pasado a la misma fecha',
+    noMonthData: 'Sin ventas este mes todavía',
     noLastYear: 'Sin datos del año pasado',
   },
 
@@ -109,6 +123,9 @@ export const dashboardCopy = {
     score: 'Puntaje',
     empty: 'Sin meseros con suficientes mesas',
     emptyText: 'Se necesitan al menos 10 tickets en el período para evaluar a un mesero.',
+    noFeed: 'Aún no llegan datos de meseros desde SmartMenu',
+    noFeedText:
+      'El reporte importado no dice qué mesero atendió cada mesa. Cuando SmartMenu esté conectado en vivo, aquí verás el ranking (se evalúa a quien tenga al menos 10 mesas en el período).',
     days: (n: number) => (n === 1 ? '1 día' : `${n} días`),
   },
 
