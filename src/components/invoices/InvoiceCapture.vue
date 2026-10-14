@@ -35,9 +35,14 @@ function onChange(event: Event) {
       :disabled="disabled"
       @click="input?.click()"
     >
-      <i class="fa-solid fa-camera" aria-hidden="true"></i>
-      <span class="capture__label">{{ copy.capture }}</span>
-      <small>{{ copy.captureHint }}</small>
+      <span class="capture__icon" aria-hidden="true"><i class="fa-solid fa-camera"></i></span>
+      <span class="capture__text">
+        <span class="capture__label">{{ copy.capture }}</span>
+        <small>{{ copy.captureHint }}</small>
+      </span>
+      <span class="capture__cta btn btn--primary btn--sm" aria-hidden="true">
+        <i class="fa-solid fa-arrow-up-from-bracket"></i> {{ copy.captureCta }}
+      </span>
     </button>
     <input
       ref="input"
@@ -54,29 +59,24 @@ function onChange(event: Event) {
 <style scoped lang="scss">
 .capture {
   &__button {
-    @include flex(column, center, center, 0.35rem);
+    @include flex(column, center, center, 0.6rem);
     width: 100%;
-    min-height: 11rem;
-    padding: 1.5rem;
-    border-radius: $radius-md;
-    border: 2px dashed rgba($accent, 0.55);
-    background: $accent-soft;
-    color: $accent-deep;
+    height: 100%;
+    min-height: 10rem;
+    padding: $sp-6 $sp-4;
+    border-radius: $radius-card;
+    border: 1.5px dashed rgba($accent, 0.5);
+    background: linear-gradient(180deg, rgba($accent-soft, 0.7), rgba($accent-soft, 0.3));
+    text-align: center;
     @include transition;
-
-    i {
-      font-size: 2.2rem;
-      margin-bottom: 0.3rem;
-    }
-
-    small {
-      color: $ink-soft;
-      font-size: $text-xs;
-    }
 
     &:hover {
       border-color: $accent;
-      background: darken($accent-soft, 3%);
+      background: $accent-soft;
+
+      .capture__icon {
+        transform: scale(1.06);
+      }
     }
 
     &:disabled {
@@ -84,8 +84,40 @@ function onChange(event: Event) {
     }
   }
 
+  &__icon {
+    @include flex(row, center, center);
+    flex: 0 0 auto;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 16px;
+    background: $surface;
+    color: $accent;
+    font-size: 1.3rem;
+    box-shadow: $shadow-sm;
+    @include transition(transform);
+  }
+
+  &__text {
+    @include flex(column, center, center, 0.1rem);
+
+    small {
+      color: $ink-soft;
+      font-size: 0.78rem;
+    }
+  }
+
   &__label {
-    @include display($text-xl, 600);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: $ink;
+  }
+
+  &__cta {
+    pointer-events: none;
+
+    @include until('md') {
+      display: none;
+    }
   }
 
   &__reading {
