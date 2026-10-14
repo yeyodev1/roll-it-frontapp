@@ -15,7 +15,8 @@ const { show } = useSalesUploadModal()
 <template>
   <button type="button" class="sact" :class="`sact--${tone}`" @click="show">
     <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i>
-    <span>{{ copy.action }}</span>
+    <span class="sact__long">{{ copy.action }}</span>
+    <span class="sact__short">{{ copy.actionShort }}</span>
   </button>
 </template>
 
@@ -30,6 +31,21 @@ const { show } = useSalesUploadModal()
   white-space: nowrap;
   @include transition;
   @include focus-ring;
+
+  margin-left: auto;
+
+  // En el celular la pastilla de la fecha y el botón comparten fila: va la versión corta.
+  &__long {
+    @include until('sm') {
+      display: none;
+    }
+  }
+
+  &__short {
+    @include from('sm') {
+      display: none;
+    }
+  }
 
   &--warning {
     background: darken($warning, 22%);
