@@ -142,6 +142,8 @@ export const site = {
       'Toma una foto de la factura del proveedor. El sistema lee los productos y, cuando confirmas, se suman al inventario.',
     recipesImport:
       'Excel o CSV con las columnas Plato, Ingrediente, Cantidad y Unidad. Cada venta descuenta del inventario según su receta.',
+    salesUpload:
+      'En SmartMenu: Reportes → Ventas detallado → exportar a Excel, y súbelo aquí. Se puede subir el mismo archivo varias veces sin duplicar.',
     sync: 'Las ventas llegan desde el SmartMenu de cada sucursal. Si el equipo del local está apagado, se actualizan cuando se vuelva a prender.',
   },
 } as const
