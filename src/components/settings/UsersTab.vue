@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import SettingsSection from './SettingsSection.vue'
 import SettingsRow from './SettingsRow.vue'
 import SheetPanel from '@/components/inventory/SheetPanel.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import { useSettingsResource } from '@/composables/useSettingsResource'
 import { userService } from '@/services/user.service'
 import { useFiltersStore } from '@/stores/filters'
@@ -46,7 +47,10 @@ const res = useSettingsResource<StaffUser, UserForm>({
     return null
   },
 })
-const { items, loading, saving, sheetOpen, editingId, form } = res
+const { items, loading, error, saving, sheetOpen, editingId, form } = res
+
+const roles = copy.user.roles.map((r) => ({ value: r.value, label: r.label }))
+const branchOptions = computed(() => filters.branches.map((b) => ({ value: b._id, label: b.name })))
 
 const roleLabel = (type: string) => copy.user.roles.find((r) => r.value === type)?.label || type
 const branchName = (id: string | null) => filters.branches.find((b) => b._id === id)?.name || ''
@@ -59,6 +63,8 @@ onMounted(res.load)
 <template>
   <SettingsSection
     :loading="loading"
+    :error="error"
+    @retry="res.load"
     :empty="!items.length"
     :add-label="copy.user.new"
     @add="res.openNew"
@@ -99,16 +105,24 @@ onMounted(res.load)
     </div>
     <div class="field">
       <label for="u-role">{{ copy.user.role }}</label>
-      <select id="u-role" v-model="form.accountType" :disabled="Boolean(editingId)">
-        <option v-for="r in copy.user.roles" :key="r.value" :value="r.value">{{ r.label }}</option>
-      </select>
+      <AppSelect
+        id="u-role"
+        v-model="form.accountType"
+        :options="roles"
+        :label="copy.user.role"
+        :disabled="Boolean(editingId)"
+      />
     </div>
     <div v-if="form.accountType === 'staff'" class="field">
       <label for="u-branch">{{ copy.user.branch }}</label>
-      <select id="u-branch" v-model="form.branch">
-        <option value="" disabled>{{ inventoryCopy.initial.pickBranch }}</option>
-        <option v-for="b in filters.branches" :key="b._id" :value="b._id">{{ b.name }}</option>
-      </select>
+      <AppSelect
+        id="u-branch"
+        v-model="form.branch"
+        :options="branchOptions"
+        :label="copy.user.branch"
+        :placeholder="inventoryCopy.initial.pickBranch"
+        icon="fa-solid fa-store"
+      />
     </div>
     <template #footer>
       <button class="btn btn--primary" :disabled="saving" @click="res.save">{{ copy.save }}</button>
