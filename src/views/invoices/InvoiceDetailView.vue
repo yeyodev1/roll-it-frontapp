@@ -2,20 +2,26 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import InvoiceDetailSkeleton from '@/components/invoices/InvoiceDetailSkeleton.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import AppDatePicker from '@/components/ui/AppDatePicker.vue'
 import InvoiceImage from '@/components/invoices/InvoiceImage.vue'
 import InvoiceLines from '@/components/invoices/InvoiceLines.vue'
 import { useInvoiceEditor } from '@/composables/useInvoiceEditor'
 import { inventoryCopy } from '@/config/inventoryCopy'
 import { site } from '@/config/site'
 import { formatCents } from '@/utils/format'
+import { ecuadorDay } from '@/stores/filters'
 
 const copy = inventoryCopy.invoice
 const route = useRoute()
 const editor = useInvoiceEditor()
-const { invoice, loading, busy, form, lines, editable, unlinked, totalCents, summary } = editor
+const { invoice, loading, error, busy, form, lines, editable, unlinked, totalCents, summary } =
+  editor
 
+// Una factura no puede ser de mañana.
+const today = ecuadorDay()
 const confirming = ref(false)
 const rejecting = ref(false)
 
@@ -29,7 +35,8 @@ async function doReject() {
   await editor.reject()
 }
 
-onMounted(() => editor.load(String(route.params.id)))
+const load = () => editor.load(String(route.params.id))
+onMounted(load)
 </script>
 
 <template>
@@ -48,7 +55,8 @@ onMounted(() => editor.load(String(route.params.id)))
       </template>
     </PageHeader>
 
-    <LoadingBlock v-if="loading || !invoice" height="20rem" />
+    <LoadError v-if="error && !invoice" :message="error" @retry="load" />
+    <InvoiceDetailSkeleton v-else-if="loading || !invoice" />
     <div v-else class="detail__body">
       <aside class="detail__photo">
         <InvoiceImage v-if="invoice.imageUrl" :src="invoice.imageUrl" />
@@ -74,7 +82,13 @@ onMounted(() => editor.load(String(route.params.id)))
           </div>
           <div class="field">
             <label for="inv-date">{{ copy.date }}</label>
-            <input id="inv-date" v-model="form.date" type="date" :disabled="!editable" />
+            <AppDatePicker
+              id="inv-date"
+              v-model="form.date"
+              :label="copy.date"
+              :max="today"
+              :disabled="!editable"
+            />
           </div>
         </div>
 
