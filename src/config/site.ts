@@ -37,6 +37,46 @@ export const site = {
     { label: 'Este mes', value: 'month' },
   ],
 
+  // Textos de los controles propios (selector, calendario, skeleton). Sin selectores nativos.
+  ui: {
+    loading: 'Cargando…',
+    retry: 'Reintentar',
+    close: 'Cerrar',
+    select: {
+      placeholder: 'Elegir',
+      search: 'Buscar',
+      empty: 'Sin resultados',
+    },
+    calendar: {
+      placeholder: 'Elegir fecha',
+      rangePlaceholder: 'Elegir fechas',
+      prevMonth: 'Mes anterior',
+      nextMonth: 'Mes siguiente',
+      today: 'Hoy',
+      apply: 'Aplicar',
+      clear: 'Limpiar',
+      pickStart: 'Toca el día de inicio',
+      pickEnd: 'Ahora toca el día final',
+      // Lunes primero, como se usa en Ecuador.
+      weekdays: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+      weekdaysNarrow: ['L', 'M', 'X', 'J', 'V', 'S', 'D'],
+      months: [
+        'Enero',
+        'Febrero',
+        'Marzo',
+        'Abril',
+        'Mayo',
+        'Junio',
+        'Julio',
+        'Agosto',
+        'Septiembre',
+        'Octubre',
+        'Noviembre',
+        'Diciembre',
+      ],
+    },
+  },
+
   weekdays: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
   weekdaysShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
 
@@ -77,11 +117,13 @@ export const site = {
     byBranch: 'Cuánto aporta cada sucursal a la venta total.',
     inventoryAlerts: 'Insumos agotados o por debajo del mínimo en las sucursales.',
     topProducts: 'Lo que más dinero deja, no solo lo que más unidades vende.',
-    heatmap: 'Venta por día y hora. Más oscuro = más venta. Sirve para decidir horarios de apertura y turnos.',
+    heatmap:
+      'Venta por día y hora. Más oscuro = más venta. Sirve para decidir horarios de apertura y turnos.',
     worstSlot: 'La franja abierta que menos vende: candidata a cerrar o a promocionar.',
     waiterScore:
       'Compara a cada mesero con el promedio de su sucursal: ticket promedio (40%), mesas por día (35%) y platos por mesa (25%). 50 = igual al equipo.',
-    projection: 'Lo vendido en el mes dividido para los días transcurridos, multiplicado por los días del mes.',
+    projection:
+      'Lo vendido en el mes dividido para los días transcurridos, multiplicado por los días del mes.',
     vsLastYear: 'Proyección del mes contra lo vendido el mismo mes del año pasado.',
     daysLeft: 'Días que alcanza el stock al ritmo de consumo de las últimas dos semanas.',
     stockStatus:
