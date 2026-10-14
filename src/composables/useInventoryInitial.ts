@@ -18,6 +18,7 @@ export function useInventoryInitial() {
   const { loadIngredients, active } = useInventoryIngredients()
   const rows = ref<InitialRow[]>([])
   const loading = ref(false)
+  const error = ref('')
   const saving = ref(false)
   const search = ref('')
 
@@ -31,6 +32,7 @@ export function useInventoryInitial() {
       return
     }
     loading.value = true
+    error.value = ''
     try {
       const [, stock] = await Promise.all([loadIngredients(), inventoryService.list(branch)])
       const current = new Map(stock.rows.map((r) => [r.ingredient._id, r.quantity]))
@@ -39,7 +41,8 @@ export function useInventoryInitial() {
         return { id: i._id, name: i.name, unit: i.unit, original, quantity: original }
       })
     } catch (e) {
-      toast.error((e as ApiError).message)
+      error.value = (e as ApiError).message
+      toast.error(error.value)
     } finally {
       loading.value = false
     }
@@ -62,5 +65,5 @@ export function useInventoryInitial() {
     }
   }
 
-  return { rows, loading, saving, search, changed, load, save }
+  return { rows, loading, error, saving, search, changed, load, save }
 }
