@@ -21,6 +21,7 @@ export const dashboardCopy = {
     closeMenu: 'Cerrar menú',
     openMenu: 'Abrir menú',
     mainNav: 'Navegación principal',
+    menu: 'Menú',
   },
 
   filters: {
@@ -55,6 +56,13 @@ export const dashboardCopy = {
     days: (n: number) => (n === 1 ? 'hace 1 día' : `hace ${n} días`),
   },
 
+  // Textos de los gráficos propios (lectores de pantalla y tooltip).
+  charts: {
+    area: 'Gráfico de área',
+    bars: 'Gráfico de barras',
+    noData: 'Sin datos',
+  },
+
   states: {
     loadError: 'No se pudieron cargar los datos',
     retry: 'Reintentar',
@@ -68,12 +76,26 @@ export const dashboardCopy = {
     tickets: 'Tickets',
     avgTicket: 'Ticket promedio',
     itemsSold: 'Ítems vendidos',
+    vsPrevious: 'vs período anterior',
+    perTicket: 'por ticket',
     daily: 'Venta por día',
+    dailyTotal: 'Total del período',
+    share: 'Participación',
+    shareTotal: 'Total',
     byBranch: 'Por sucursal',
+    ranking: 'Ranking de sucursales',
+    cols: {
+      branch: 'Sucursal',
+      sales: 'Venta',
+      tickets: 'Tickets',
+      avgTicket: 'Ticket prom.',
+      share: '% venta',
+    },
     alerts: 'Inventario',
-    alertsOut: 'agotados',
-    alertsLow: 'por acabarse',
+    alertsOut: 'Agotados',
+    alertsLow: 'Por acabarse',
     alertsOk: 'Todo en orden',
+    alertsOkText: 'Ningún insumo bajo el mínimo',
     alertsCta: 'Ver inventario',
     lastSync: 'Última venta recibida',
   },
@@ -83,14 +105,23 @@ export const dashboardCopy = {
     monthSold: 'Vendido este mes',
     projection: 'Proyección del mes',
     lastYear: 'Mismo mes, año pasado',
+    vsLastYear: 'vs año pasado',
     daysProgress: (elapsed: number, total: number) => `Día ${elapsed} de ${total}`,
     trend: 'Venta mensual',
-    thisYear: 'Últimos 12 meses',
-    prevYear: 'Año anterior',
     ytd: 'Acumulado del año',
-    ytdLastYear: 'Año pasado a la misma fecha',
+    ytdSub: (value: string) => `Año pasado: ${value}`,
     noMonthData: 'Sin ventas este mes todavía',
     noLastYear: 'Sin datos del año pasado',
+    table: 'Detalle por mes',
+    inProgress: 'En curso',
+    cols: {
+      month: 'Mes',
+      sales: 'Venta',
+      tickets: 'Tickets',
+      avgTicket: 'Ticket prom.',
+      lastYear: 'Año pasado',
+      vs: 'Variación',
+    },
   },
 
   operations: {
