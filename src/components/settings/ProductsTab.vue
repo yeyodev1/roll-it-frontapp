@@ -41,7 +41,7 @@ const res = useSettingsResource<Product, ProductForm>({
   update: (id, p) => catalogService.updateProduct(id, p),
   validate: (f) => (f.name.trim() ? null : copy.product.name),
 })
-const { items, loading, saving, sheetOpen, editingId, form } = res
+const { items, loading, error, saving, sheetOpen, editingId, form } = res
 
 const visible = computed(() => {
   const term = normalize(search.value)
@@ -61,6 +61,8 @@ onMounted(res.load)
 <template>
   <SettingsSection
     :loading="loading"
+    :error="error"
+    @retry="res.load"
     :empty="!visible.length"
     :add-label="copy.product.new"
     @add="res.openNew"
