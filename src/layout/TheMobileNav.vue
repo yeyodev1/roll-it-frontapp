@@ -86,11 +86,13 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   position: fixed;
   inset: auto 0 0 0;
   z-index: 90;
-  @include flex(row, stretch, space-around);
-  padding: 0.3rem 0.25rem calc(0.3rem + env(safe-area-inset-bottom));
-  background: rgba($surface, 0.96);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid $line;
+  @include flex(row, stretch, space-around, 0.15rem);
+  padding: 0.4rem 0.4rem calc(0.4rem + env(safe-area-inset-bottom));
+  background: rgba($surface, 0.97);
+  backdrop-filter: saturate(1.4) blur(14px);
+  border-top: 1px solid $line-soft;
+  border-radius: $radius-card $radius-card 0 0;
+  box-shadow: 0 -8px 24px -10px rgba($ink, 0.12);
 
   @include from('lg') {
     display: none;
@@ -101,14 +103,20 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
     min-width: 0;
     @include flex(column, center, center, 0.2rem);
     min-height: 3.25rem;
-    border-radius: $radius-sm;
+    border-radius: $radius-ctl;
     color: $ink-muted;
-    font-size: 0.66rem;
+    font-size: 0.64rem;
     font-weight: 600;
     @include transition(color);
 
+    // El ícono lleva su propia pastilla: así la sección activa se ve de un vistazo.
     i {
-      font-size: 1.1rem;
+      @include flex(row, center, center);
+      width: 3rem;
+      height: 1.85rem;
+      border-radius: $radius-pill;
+      font-size: 1rem;
+      @include transition(background-color);
     }
 
     span {
@@ -119,7 +127,12 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
     }
 
     &.router-link-active {
-      color: $accent;
+      color: $accent-deep;
+
+      i {
+        background: $accent-soft;
+        color: $accent;
+      }
     }
   }
 }
