@@ -2,8 +2,12 @@
 import { computed } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import RefreshStamp from '@/components/ui/RefreshStamp.vue'
+import LoadingBlock from '@/components/ui/LoadingBlock.vue'
+import SkeletonCards from '@/components/ui/skeleton/SkeletonCards.vue'
+import SkeletonList from '@/components/ui/skeleton/SkeletonList.vue'
 import BarList from '@/components/charts/BarList.vue'
 import HeatmapWeek from '@/components/charts/HeatmapWeek.vue'
 import { site } from '@/config/site'
@@ -15,7 +19,7 @@ import { formatCents, formatPercent } from '@/utils/format'
 
 const copy = dashboardCopy.operations
 const filters = useFiltersStore()
-const { data, loading, error, reload } = useDashboardData(
+const { data, loading, error, reload, updatedAt, refreshing } = useDashboardData(
   dashboardService.operations.bind(dashboardService),
 )
 
@@ -71,20 +75,25 @@ const isEmpty = computed(
 
 <template>
   <div class="page">
-    <PageHeader :title="copy.title" :subtitle="filters.branchName" />
+    <PageHeader :title="copy.title" :subtitle="filters.branchName">
+      <template #actions>
+        <RefreshStamp :at="updatedAt" :refreshing="refreshing" />
+      </template>
+    </PageHeader>
 
-    <LoadingBlock v-if="loading && !data" height="22rem" />
+    <template v-if="loading">
+      <SkeletonCards :count="2" basis="240px" :lines="1" min-height="8.5rem" />
+      <section class="card">
+        <span class="sk sk--line ops__sk-title" aria-hidden="true"></span>
+        <LoadingBlock height="15rem" />
+      </section>
+      <div class="ops__row">
+        <SkeletonList class="ops__col" variant="bars" :rows="6" title />
+        <SkeletonList class="ops__col" variant="bars" :rows="4" title />
+      </div>
+    </template>
 
-    <EmptyState
-      v-else-if="error && !data"
-      icon="fa-solid fa-plug-circle-exclamation"
-      :title="dashboardCopy.states.loadError"
-      :text="error"
-    >
-      <button class="btn btn--dark btn--sm" @click="reload">
-        {{ dashboardCopy.states.retry }}
-      </button>
-    </EmptyState>
+    <LoadError v-else-if="error && !data" :message="error" @retry="reload" />
 
     <EmptyState
       v-else-if="isEmpty"
@@ -94,7 +103,7 @@ const isEmpty = computed(
     />
 
     <template v-else-if="data">
-      <section v-if="slots.length" class="ops__slots" :class="{ 'is-loading': loading }">
+      <section v-if="slots.length" class="ops__slots">
         <article v-for="s in slots" :key="s.key" class="ops__slot" :class="`ops__slot--${s.key}`">
           <header class="ops__slot-head">
             <i :class="s.icon" aria-hidden="true"></i>
@@ -131,11 +140,12 @@ const isEmpty = computed(
 .ops {
   &__slots {
     @include flex-cards(240px, 0.75rem);
-    @include transition(opacity);
+  }
 
-    &.is-loading {
-      opacity: 0.55;
-    }
+  &__sk-title {
+    width: 11rem;
+    height: 0.95rem;
+    margin-bottom: 1rem;
   }
 
   &__slot {
