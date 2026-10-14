@@ -13,6 +13,11 @@ export function slotLabel(weekday: number, hour: number): string {
   return `${site.weekdays[weekday] ?? ''} ${hourLabel(hour)}`
 }
 
+/** "Sáb 13h": para una cifra de tarjeta, donde el día completo no entra. */
+export function slotShort(weekday: number, hour: number): string {
+  return `${site.weekdaysShort[weekday] ?? ''} ${hourLabel(hour)}`
+}
+
 export const dashboardCopy = {
   layout: {
     logout: 'Salir',
@@ -163,8 +168,20 @@ export const dashboardCopy = {
 
   operations: {
     title: 'Operaciones',
-    best: 'Mejor hora',
-    worst: 'Hora más floja',
+    best: 'Mejor franja',
+    worst: 'Franja más floja',
+    star: 'Plato estrella',
+    leadCategory: 'Categoría líder',
+    otherCategories: 'Otras',
+    categoryTotal: 'Venta',
+    productCols: {
+      name: 'Plato',
+      quantity: 'Vendidos',
+      sales: 'Venta',
+      share: '% venta',
+    },
+    heatBest: 'Mejor franja',
+    heatDayTotal: 'Total',
     bestSentence: (weekday: number, hour: number) => `${slotLabel(weekday, hour)} es tu mejor hora`,
     worstSentence: (weekday: number, hour: number) =>
       `${slotLabel(weekday, hour)} es tu hora más floja`,
@@ -191,9 +208,25 @@ export const dashboardCopy = {
     score: 'Puntaje',
     empty: 'Sin meseros con suficientes mesas',
     emptyText: 'Se necesitan al menos 10 tickets en el período para evaluar a un mesero.',
-    noFeed: 'Aún no llegan datos de meseros desde SmartMenu',
+    noFeed: 'Aún no hay datos de meseros',
     noFeedText:
-      'El reporte importado no dice qué mesero atendió cada mesa. Cuando SmartMenu esté conectado en vivo, aquí verás el ranking (se evalúa a quien tenga al menos 10 mesas en el período).',
+      'Falta el reporte de meseros de SmartMenu: el de ventas no dice quién atendió cada mesa.',
+    evaluated: 'Meseros evaluados',
+    evaluatedSub: (top: number, attention: number) =>
+      `${top} destacados · ${attention} por mejorar`,
+    teamAvgSub: 'Promedio del equipo',
+    people: (n: number) => (n === 1 ? '1 mesero' : `${n} meseros`),
+    ranking: 'Ranking de meseros',
+    byLevel: 'Por nivel',
+    reasons: 'Por qué',
+    cols: {
+      name: 'Mesero',
+      level: 'Nivel',
+      score: 'Puntaje',
+      avgTicket: 'Ticket prom.',
+      perDay: 'Mesas / día',
+      perTicket: 'Platos / mesa',
+    },
     days: (n: number) => (n === 1 ? '1 día' : `${n} días`),
   },
 
