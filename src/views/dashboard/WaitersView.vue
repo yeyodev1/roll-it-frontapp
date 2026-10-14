@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import RefreshStamp from '@/components/ui/RefreshStamp.vue'
+import SkeletonCards from '@/components/ui/skeleton/SkeletonCards.vue'
 import WaiterCard from '@/components/dashboard/WaiterCard.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
@@ -16,7 +18,7 @@ type View = 'all' | 'attention' | 'top'
 
 const copy = dashboardCopy.waiters
 const filters = useFiltersStore()
-const { data, loading, error, reload } = useDashboardData(
+const { data, loading, error, reload, updatedAt, refreshing } = useDashboardData(
   dashboardService.waiters.bind(dashboardService),
 )
 
@@ -68,26 +70,25 @@ function key(s: WaiterStats) {
 
 <template>
   <div class="page">
-    <PageHeader :title="copy.title" :subtitle="filters.branchName" :help="site.help.waiterScore" />
+    <PageHeader :title="copy.title" :subtitle="filters.branchName" :help="site.help.waiterScore">
+      <template #actions>
+        <RefreshStamp :at="updatedAt" :refreshing="refreshing" />
+      </template>
+    </PageHeader>
 
-    <LoadingBlock v-if="loading && !data" height="22rem" />
+    <template v-if="loading">
+      <span class="sk wt__sk-team" aria-hidden="true"></span>
+      <SkeletonCards :count="4" basis="300px" :lines="3" min-height="14rem" />
+    </template>
 
-    <EmptyState
-      v-else-if="error && !data"
-      icon="fa-solid fa-plug-circle-exclamation"
-      :title="dashboardCopy.states.loadError"
-      :text="error"
-    >
-      <button class="btn btn--dark btn--sm" @click="reload">
-        {{ dashboardCopy.states.retry }}
-      </button>
-    </EmptyState>
+    <LoadError v-else-if="error && !data" :message="error" @retry="reload" />
 
+    <!-- El reporte importado no trae mesero: sin datos en vivo no hay ranking, no ceros. -->
     <EmptyState
       v-else-if="data && !ranked.length"
       icon="fa-solid fa-user-clock"
-      :title="copy.empty"
-      :text="copy.emptyText"
+      :title="copy.noFeed"
+      :text="copy.noFeedText"
     />
 
     <template v-else-if="data && team">
@@ -115,7 +116,7 @@ function key(s: WaiterStats) {
         </button>
       </div>
 
-      <section class="wt__list" :class="{ 'is-loading': loading }">
+      <section class="wt__list">
         <WaiterCard
           v-for="r in visible"
           :key="key(r.stats)"
@@ -183,11 +184,11 @@ function key(s: WaiterStats) {
   &__list {
     @include flex-cards(300px, 1rem);
     align-items: flex-start;
-    @include transition(opacity);
+  }
 
-    &.is-loading {
-      opacity: 0.55;
-    }
+  &__sk-team {
+    height: 3.6rem;
+    border-radius: 14px;
   }
 }
 </style>
