@@ -10,6 +10,7 @@ export function useRecipes() {
   const products = ref<Product[]>([])
   const recipes = ref<Map<string, Recipe>>(new Map())
   const loading = ref(false)
+  const error = ref('')
   const onlyWithout = ref(false)
   const search = ref('')
 
@@ -28,6 +29,7 @@ export function useRecipes() {
 
   async function load() {
     loading.value = true
+    error.value = ''
     try {
       const [list, recipeList] = await Promise.all([
         catalogService.listProducts(),
@@ -36,7 +38,8 @@ export function useRecipes() {
       products.value = list
       recipes.value = new Map(recipeList.map((r) => [r.product._id, r]))
     } catch (e) {
-      toast.error((e as ApiError).message)
+      error.value = (e as ApiError).message
+      toast.error(error.value)
     } finally {
       loading.value = false
     }
@@ -56,6 +59,7 @@ export function useRecipes() {
     products,
     recipes,
     loading,
+    error,
     onlyWithout,
     search,
     withoutCount,
