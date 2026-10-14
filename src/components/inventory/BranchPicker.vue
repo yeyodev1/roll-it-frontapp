@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import { useFiltersStore } from '@/stores/filters'
 import { useUserStore } from '@/stores/user'
 import { inventoryCopy } from '@/config/inventoryCopy'
@@ -11,7 +12,10 @@ const model = defineModel<string>({ required: true })
 const filters = useFiltersStore()
 const userStore = useUserStore()
 
-const branches = computed(() => filters.branches.filter((b) => b.isActive))
+const options = computed(() => [
+  ...(props.allowAll ? [{ value: 'all', label: inventoryCopy.stock.allBranches }] : []),
+  ...filters.branches.filter((b) => b.isActive).map((b) => ({ value: b._id, label: b.name })),
+])
 const ownName = computed(
   () => filters.branches.find((b) => b._id === userStore.user?.branch)?.name || '',
 )
@@ -25,14 +29,16 @@ const placeholder = computed(() =>
     <i class="fa-solid fa-store" aria-hidden="true"></i>
     {{ ownName }}
   </span>
-  <label v-else class="branch-picker">
-    <span class="visually-hidden">{{ inventoryCopy.initial.pickBranch }}</span>
-    <i class="fa-solid fa-store branch-picker__icon" aria-hidden="true"></i>
-    <select v-model="model" :class="{ 'branch-picker__select--empty': !model }">
-      <option :value="allowAll ? 'all' : ''" :disabled="!allowAll">{{ placeholder }}</option>
-      <option v-for="b in branches" :key="b._id" :value="b._id">{{ b.name }}</option>
-    </select>
-  </label>
+  <AppSelect
+    v-else
+    v-model="model"
+    class="branch-picker"
+    :options="options"
+    :placeholder="placeholder"
+    :label="inventoryCopy.initial.pickBranch"
+    icon="fa-solid fa-store"
+    pill
+  />
 </template>
 
 <style scoped lang="scss">
@@ -51,29 +57,6 @@ const placeholder = computed(() =>
 }
 
 .branch-picker {
-  position: relative;
-  display: block;
-  margin: 0;
   min-width: 12rem;
-
-  &__icon {
-    position: absolute;
-    left: 0.9rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: $accent;
-    font-size: 0.85rem;
-    pointer-events: none;
-  }
-
-  select {
-    padding-left: 2.3rem;
-    font-weight: 600;
-    border-radius: $radius-pill;
-  }
-
-  &__select--empty {
-    color: $ink-muted;
-  }
 }
 </style>
