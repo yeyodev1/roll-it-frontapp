@@ -12,10 +12,12 @@ export function useInventoryMovements() {
   const pages = ref(1)
   const page = ref(1)
   const loading = ref(false)
+  const error = ref('')
   const filters = reactive({ branch: '', ingredient: '', type: '' as MovementType | '' })
 
   async function load() {
     loading.value = true
+    error.value = ''
     try {
       const data = await inventoryService.movements({
         branch: filters.branch === 'all' ? '' : filters.branch,
@@ -28,7 +30,8 @@ export function useInventoryMovements() {
       total.value = data.total
       pages.value = Math.max(1, data.pages)
     } catch (e) {
-      toast.error((e as ApiError).message)
+      error.value = (e as ApiError).message
+      toast.error(error.value)
     } finally {
       loading.value = false
     }
@@ -44,5 +47,5 @@ export function useInventoryMovements() {
   )
   watch(page, load)
 
-  return { items, total, pages, page, loading, filters, load }
+  return { items, total, pages, page, loading, error, filters, load }
 }
