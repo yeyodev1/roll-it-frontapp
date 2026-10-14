@@ -229,10 +229,22 @@ export interface FinanceResponse {
   yearToDate: { salesCents: number; lastYearSameRangeCents: number | null }
 }
 
+/** live: el agente del local avisó hace menos de 10 min; none: nunca se instaló. */
+export type AgentState = 'live' | 'offline' | 'none'
+
+export interface AgentInfo {
+  state: AgentState
+  lastSeenAt: string | null
+  version: string
+  mode: 'descubrir' | 'carpeta' | 'auto' | ''
+  lastError: string
+}
+
 export interface SyncStatus {
   branch: Branch
   lastSyncAt: string | null
   salesToday: number
+  agent: AgentInfo
 }
 
 /** Respuesta de `POST /sync/upload`: lo que dejó cargado el reporte de SmartMenu. */
