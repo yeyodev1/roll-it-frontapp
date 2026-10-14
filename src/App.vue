@@ -105,6 +105,10 @@ function logout() {
   min-height: 100vh;
   min-height: 100dvh;
 
+  @include from('lg') {
+    @include flex(row, stretch, flex-start);
+  }
+
   &__sidebar {
     @include until('lg') {
       display: none;
@@ -117,7 +121,8 @@ function logout() {
     min-height: 100dvh;
 
     @include from('lg') {
-      margin-left: 15rem;
+      flex: 1 1 0;
+      min-width: 0;
     }
   }
 
