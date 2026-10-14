@@ -6,6 +6,8 @@ import TheTopbar from '@/layout/TheTopbar.vue'
 import TheMobileNav from '@/layout/TheMobileNav.vue'
 import TheFilterBar from '@/layout/TheFilterBar.vue'
 import ToastList from '@/components/ui/ToastList.vue'
+import BrandMark from '@/components/ui/BrandMark.vue'
+import LoadingBlock from '@/components/ui/LoadingBlock.vue'
 import { useUserStore } from '@/stores/user'
 import { useFiltersStore } from '@/stores/filters'
 import { useToastStore } from '@/stores/toast'
@@ -33,6 +35,8 @@ watch(
     try {
       filtersStore.setBranches(await branchService.list())
     } catch (e) {
+      // Sin sucursales igual se puede mirar "todas": que las vistas no esperen para siempre.
+      filtersStore.markReady()
       toast.error((e as ApiError).message)
     }
   },
@@ -41,13 +45,19 @@ watch(
 
 function logout() {
   userStore.clear()
-  filtersStore.setBranches([])
+  filtersStore.reset()
   router.replace('/login')
 }
 </script>
 
 <template>
-  <div v-if="bare" class="bare">
+  <!-- Mientras se verifica la sesión (red lenta) no queda la pantalla en blanco. -->
+  <div v-if="userStore.loading && !userStore.user" class="boot">
+    <BrandMark />
+    <LoadingBlock class="boot__bar" height="0.5rem" />
+  </div>
+
+  <div v-else-if="bare" class="bare">
     <RouterView v-slot="{ Component }">
       <Transition name="page" mode="out-in">
         <component :is="Component" />
@@ -75,6 +85,16 @@ function logout() {
 </template>
 
 <style scoped lang="scss">
+.boot {
+  @include flex(column, center, center, 1.25rem);
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  &__bar {
+    width: min(12rem, 60vw);
+  }
+}
+
 .bare {
   @include flex(column, stretch, flex-start);
   min-height: 100vh;
