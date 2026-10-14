@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import SettingsSection from './SettingsSection.vue'
 import SettingsRow from './SettingsRow.vue'
 import SheetPanel from '@/components/inventory/SheetPanel.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import { useSettingsResource } from '@/composables/useSettingsResource'
 import { useInventoryIngredients } from '@/composables/useInventoryIngredients'
 import { normalize } from '@/composables/useInventoryStock'
@@ -21,7 +22,10 @@ interface IngredientForm {
 }
 
 const copy = inventoryCopy.settings
-const units: IngredientUnit[] = ['g', 'kg', 'ml', 'l', 'unidad']
+const units = (['g', 'kg', 'ml', 'l', 'unidad'] as IngredientUnit[]).map((u) => ({
+  value: u,
+  label: u,
+}))
 const search = ref('')
 const shared = useInventoryIngredients()
 
@@ -52,7 +56,7 @@ const res = useSettingsResource<Ingredient, IngredientForm>({
   update: (id, p) => catalogService.updateIngredient(id, p),
   validate: (f) => (f.name.trim() ? null : copy.ingredient.name),
 })
-const { items, loading, saving, sheetOpen, editingId, form } = res
+const { items, loading, error, saving, sheetOpen, editingId, form } = res
 
 const visible = computed(() => {
   const term = normalize(search.value)
@@ -73,6 +77,8 @@ onMounted(res.load)
 <template>
   <SettingsSection
     :loading="loading"
+    :error="error"
+    @retry="res.load"
     :empty="!visible.length"
     :add-label="copy.ingredient.new"
     @add="res.openNew"
@@ -103,9 +109,7 @@ onMounted(res.load)
     <div class="pair">
       <div class="field">
         <label for="i-unit">{{ copy.ingredient.unit }}</label>
-        <select id="i-unit" v-model="form.unit">
-          <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
-        </select>
+        <AppSelect id="i-unit" v-model="form.unit" :options="units" :label="copy.ingredient.unit" />
       </div>
       <div class="field">
         <label for="i-cost">{{ copy.ingredient.cost }}</label>
