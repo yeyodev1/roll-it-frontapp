@@ -173,9 +173,12 @@ const { open, query, active, selected, filtered, show, hide, choose, onTriggerKe
   }
 
   &--pill &__trigger {
-    min-height: 2.5rem;
+    min-height: 2.75rem;
+    border-color: rgba($line, 0.6);
     border-radius: $radius-pill;
+    font-size: 0.88rem;
     font-weight: 600;
+    box-shadow: $shadow-card;
   }
 
   &__lead,
