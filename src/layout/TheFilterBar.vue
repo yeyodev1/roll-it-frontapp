@@ -3,15 +3,19 @@ import { computed } from 'vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppDateRange from '@/components/ui/AppDateRange.vue'
 import DataUntilNotice from '@/components/ui/DataUntilNotice.vue'
+import SalesUploadAction from '@/components/sync/SalesUploadAction.vue'
+import SalesUploadModal from '@/components/sync/SalesUploadModal.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
 import { useFiltersStore, type RangePreset } from '@/stores/filters'
 import { useLastSync } from '@/composables/useLastSync'
 import { useTimeAgo } from '@/composables/useTimeAgo'
+import { useUserStore } from '@/stores/user'
 
 const props = defineProps<{ lastSyncAt?: string | null }>()
 
 const filters = useFiltersStore()
+const user = useUserStore()
 const copy = dashboardCopy.filters
 const { lastSyncAt: sharedSync } = useLastSync()
 
@@ -74,13 +78,18 @@ function pick(preset: RangePreset) {
         />
       </div>
 
-      <DataUntilNotice v-if="filters.isBehind" class="filters__until" />
+      <!-- Datos atrasados: el dueño sube el reporte de SmartMenu desde la misma pastilla. -->
+      <DataUntilNotice v-if="filters.isBehind" class="filters__until">
+        <SalesUploadAction v-if="user.isAdmin" />
+      </DataUntilNotice>
       <p v-else class="filters__sync" :class="{ 'filters__sync--stale': stale }">
         <span class="filters__dot" aria-hidden="true"></span>
         <template v-if="syncAt">{{ copy.lastSale }} {{ ago }}</template>
         <template v-else>{{ copy.neverSynced }}</template>
+        <SalesUploadAction v-if="stale && user.isAdmin" />
       </p>
     </div>
+    <SalesUploadModal v-if="user.isAdmin" />
   </div>
 </template>
 
@@ -173,6 +182,7 @@ function pick(preset: RangePreset) {
     color: darken($success, 16%);
 
     &--stale {
+      padding-right: 0.2rem;
       background: $warning-bg;
       color: darken($warning, 22%);
 
