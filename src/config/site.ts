@@ -129,9 +129,14 @@ export const site = {
     topProducts: 'Lo que más dinero deja, no solo lo que más unidades vende.',
     heatmap:
       'Venta por día y hora. Más oscuro = más venta. Sirve para decidir horarios de apertura y turnos.',
+    bestSlot:
+      'El día y la hora que más venden en el período: ahí no puede faltar gente ni insumos.',
+    byCategory: 'Cuánto aporta cada categoría del menú a la venta.',
     worstSlot: 'La franja abierta que menos vende: candidata a cerrar o a promocionar.',
     waiterScore:
       'Compara a cada mesero con el promedio de su sucursal: ticket promedio (40%), mesas por día (35%) y platos por mesa (25%). 50 = igual al equipo.',
+    perDay: 'Mesas atendidas por cada día trabajado.',
+    perTicket: 'Platos y bebidas por cuenta: mide si el mesero sugiere y vende de más.',
     projection:
       'Lo vendido en el mes dividido para los días transcurridos, multiplicado por los días del mes.',
     vsLastYear: 'Proyección del mes contra lo vendido el mismo mes del año pasado.',
