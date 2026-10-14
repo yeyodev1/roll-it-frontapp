@@ -239,6 +239,14 @@ export const dashboardCopy = {
     loading: 'Ingresando…',
     hello: (name: string) => `Hola, ${name}`,
     brandLine: 'Rolls y burritos · 3 sucursales',
+    lead: 'Entra con tu correo y tu contraseña.',
+    show: 'Mostrar contraseña',
+    hide: 'Ocultar contraseña',
+    features: [
+      { label: 'Ventas por sucursal', icon: 'fa-solid fa-chart-line' },
+      { label: 'Inventario al día', icon: 'fa-solid fa-boxes-stacked' },
+      { label: 'Facturas con foto', icon: 'fa-solid fa-camera' },
+    ],
   },
 
   account: {
