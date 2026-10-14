@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import ChartCard from '@/components/ui/ChartCard.vue'
+import SearchField from '@/components/ui/SearchField.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import LoadError from '@/components/ui/LoadError.vue'
 import RefreshStamp from '@/components/ui/RefreshStamp.vue'
@@ -87,11 +88,7 @@ onMounted(async () => {
     <div class="inv__row">
       <ChartCard class="inv__main" :title="copy.list" flush>
         <template #action>
-          <label class="search">
-            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <span class="visually-hidden">{{ copy.search }}</span>
-            <input v-model="search" type="search" :placeholder="copy.search" />
-          </label>
+          <SearchField v-model="search" :placeholder="copy.search" />
         </template>
         <SkeletonTable v-if="loading" :rows="8" :cols="5" />
         <LoadError v-else-if="error && !rows.length" :message="error" @retry="load(branch)" />
@@ -205,29 +202,6 @@ onMounted(async () => {
     @include from('md') {
       padding: 0 $sp-6 $sp-6;
     }
-  }
-}
-
-.search {
-  position: relative;
-  margin: 0;
-  width: min(16rem, 100%);
-
-  i {
-    position: absolute;
-    left: 0.85rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: $ink-muted;
-    font-size: 0.8rem;
-  }
-
-  input {
-    padding: 0.5rem 0.9rem 0.5rem 2.2rem;
-    border-radius: $radius-pill;
-    background: $canvas;
-    border-color: transparent;
-    font-size: 0.84rem;
   }
 }
 </style>
