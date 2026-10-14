@@ -35,7 +35,13 @@ function select(key: string) {
   router.replace({ query: { ...route.query, tab: key } })
 }
 
-onMounted(ensureBranches)
+onMounted(() => {
+  ensureBranches()
+  // En el celular las pestañas se deslizan: la elegida por la URL tiene que quedar a la vista.
+  document
+    .querySelector('.tabs [aria-selected="true"]')
+    ?.scrollIntoView({ inline: 'center', block: 'nearest' })
+})
 </script>
 
 <template>
