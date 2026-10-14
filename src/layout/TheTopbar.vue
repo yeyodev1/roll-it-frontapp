@@ -2,38 +2,35 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import BrandMark from '@/components/ui/BrandMark.vue'
+import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
-import { useUserStore } from '@/stores/user'
+import { useAccount } from '@/composables/useAccount'
 
 const emit = defineEmits<{ logout: [] }>()
 
 const route = useRoute()
-const userStore = useUserStore()
+const { initials, name } = useAccount()
 const copy = dashboardCopy.layout
 
 const title = computed(() => (route.meta.title as string | undefined) ?? '')
-const initials = computed(() => {
-  const name = userStore.user?.name || userStore.user?.email || ''
-  return name
-    .split(/[\s@.]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join('')
-})
+// El ícono de la sección acompaña al título, igual que en la barra lateral.
+const icon = computed(() => site.nav.find((n) => route.path.startsWith(n.to))?.icon ?? '')
 </script>
 
 <template>
   <header class="topbar">
     <RouterLink to="/" class="topbar__brand">
-      <BrandMark :size="26" />
+      <BrandMark :size="28" />
     </RouterLink>
-    <p class="topbar__title">{{ title }}</p>
+    <p class="topbar__title">
+      <i v-if="icon" :class="icon" aria-hidden="true"></i>
+      {{ title }}
+    </p>
 
     <div class="topbar__user">
       <RouterLink to="/cuenta" class="topbar__account" :aria-label="copy.account">
         <span class="topbar__avatar" aria-hidden="true">{{ initials }}</span>
-        <span class="topbar__name">{{ userStore.user?.name }}</span>
+        <span class="topbar__name">{{ name }}</span>
       </RouterLink>
       <button
         type="button"
@@ -53,15 +50,16 @@ const initials = computed(() => {
   position: sticky;
   top: 0;
   z-index: 70;
-  @include flex(row, center, space-between, 0.75rem);
-  min-height: 3.5rem;
-  padding: 0.5rem 0.75rem 0.5rem 1rem;
-  background: rgba($paper, 0.92);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid $line;
+  @include flex(row, center, space-between, $sp-3);
+  min-height: 3.75rem;
+  padding: $sp-2 $sp-3 $sp-2 $sp-4;
+  background: rgba($surface, 0.88);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid $line-soft;
 
   @include from('lg') {
-    padding-inline: 2rem 1.25rem;
+    min-height: 4.25rem;
+    padding-inline: $sp-8 $sp-6;
   }
 
   &__brand {
@@ -71,39 +69,50 @@ const initials = computed(() => {
   }
 
   &__title {
-    display: none;
-    font-size: 0.9rem;
+    @include flex(row, center, flex-start, 0.6rem);
+    font-size: 0.92rem;
     font-weight: 600;
-    color: $ink-soft;
+    color: $ink;
 
-    @include from('lg') {
-      display: block;
+    i {
+      @include flex(row, center, center);
+      width: 2rem;
+      height: 2rem;
+      border-radius: $radius-ctl;
+      background: $canvas;
+      color: $accent;
+      font-size: 0.85rem;
+    }
+
+    @include until('lg') {
+      display: none;
     }
   }
 
   &__user {
     @include flex(row, center, flex-end, 0.25rem);
     min-width: 0;
+    margin-left: auto;
   }
 
   &__account {
     @include flex(row, center, flex-start, 0.55rem);
     min-width: 0;
     min-height: 2.75rem;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.75rem 0.25rem 0.3rem;
     border-radius: $radius-pill;
     @include transition(background-color);
 
     &:hover {
-      background: $sand;
+      background: $canvas;
     }
   }
 
   &__avatar {
     @include flex(row, center, center);
     flex-shrink: 0;
-    width: 2rem;
-    height: 2rem;
+    width: 2.1rem;
+    height: 2.1rem;
     border-radius: 50%;
     background: $accent-soft;
     color: $accent-deep;
@@ -114,7 +123,7 @@ const initials = computed(() => {
   &__name {
     display: none;
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -135,6 +144,11 @@ const initials = computed(() => {
 
     &:hover {
       color: $danger;
+    }
+
+    // En escritorio salir ya está en la barra lateral.
+    @include from('lg') {
+      display: none;
     }
   }
 }
