@@ -12,50 +12,61 @@ const copy = dashboardCopy.layout
 </script>
 
 <template>
-  <aside class="sidebar">
-    <RouterLink to="/" class="sidebar__brand">
-      <BrandMark :size="32" />
-    </RouterLink>
-
-    <nav class="sidebar__nav" :aria-label="copy.mainNav">
-      <p class="sidebar__group">{{ copy.menu }}</p>
-      <RouterLink v-for="item in items" :key="item.to" :to="item.to" class="sidebar__link">
-        <i :class="item.icon" aria-hidden="true"></i>
-        <span>{{ item.label }}</span>
+  <!-- La columna blanca ocupa todo el alto de la página; el contenido queda fijo a la vista. -->
+  <div class="sidebar">
+    <aside class="sidebar__inner">
+      <RouterLink to="/" class="sidebar__brand">
+        <BrandMark :size="32" />
       </RouterLink>
-    </nav>
 
-    <div class="sidebar__foot">
-      <RouterLink to="/cuenta" class="sidebar__user">
-        <span class="sidebar__avatar" aria-hidden="true">{{ initials }}</span>
-        <span class="sidebar__who">
-          <strong>{{ name }}</strong>
-          <small v-if="role">{{ role }}</small>
-        </span>
-      </RouterLink>
-      <button
-        type="button"
-        class="sidebar__logout"
-        :aria-label="copy.logout"
-        :title="copy.logout"
-        @click="emit('logout')"
-      >
-        <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
-      </button>
-    </div>
-  </aside>
+      <nav class="sidebar__nav" :aria-label="copy.mainNav">
+        <p class="sidebar__group">{{ copy.menu }}</p>
+        <RouterLink v-for="item in items" :key="item.to" :to="item.to" class="sidebar__link">
+          <i :class="item.icon" aria-hidden="true"></i>
+          <span>{{ item.label }}</span>
+        </RouterLink>
+      </nav>
+
+      <div class="sidebar__foot">
+        <RouterLink to="/cuenta" class="sidebar__user">
+          <span class="sidebar__avatar" aria-hidden="true">{{ initials }}</span>
+          <span class="sidebar__who">
+            <strong>{{ name }}</strong>
+            <small v-if="role">{{ role }}</small>
+          </span>
+        </RouterLink>
+        <button
+          type="button"
+          class="sidebar__logout"
+          :aria-label="copy.logout"
+          :title="copy.logout"
+          @click="emit('logout')"
+        >
+          <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+        </button>
+      </div>
+    </aside>
+  </div>
 </template>
 
 <style scoped lang="scss">
 .sidebar {
-  position: fixed;
-  inset: 0 auto 0 0;
+  flex: 0 0 15rem;
   width: 15rem;
+  align-self: stretch;
+  position: relative;
   z-index: 80;
-  @include flex(column, stretch, flex-start, $sp-6);
-  padding: $sp-6 $sp-4 $sp-4;
   background: $surface;
   border-right: 1px solid $line-soft;
+
+  &__inner {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+    @include flex(column, stretch, flex-start, $sp-6);
+    padding: $sp-6 $sp-4 $sp-4;
+  }
 
   &__brand {
     padding: 0 $sp-2;
