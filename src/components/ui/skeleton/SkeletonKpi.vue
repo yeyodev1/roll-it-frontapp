@@ -1,19 +1,25 @@
 <script setup lang="ts">
 import { site } from '@/config/site'
 
-// Misma caja que KpiCard (etiqueta, cifra grande, variación) para que nada salte al llegar los datos.
-withDefaults(defineProps<{ count?: number; delta?: boolean }>(), { count: 4, delta: true })
+// Misma caja que KpiCard (etiqueta, ícono en la esquina, cifra, variación y
+// tendencia) para que nada salte al llegar los datos.
+withDefaults(defineProps<{ count?: number; delta?: boolean; spark?: boolean }>(), {
+  count: 4,
+  delta: true,
+  spark: false,
+})
 </script>
 
 <template>
   <div class="sk-kpis" role="status" aria-busy="true">
     <div v-for="n in count" :key="n" class="sk-kpis__card" aria-hidden="true">
       <span class="sk-kpis__head">
-        <span class="sk sk--round sk-kpis__icon"></span>
-        <span class="sk sk--line" :style="{ width: `${48 + (n % 3) * 12}%` }"></span>
+        <span class="sk sk--line" :style="{ width: `${42 + (n % 3) * 12}%` }"></span>
+        <span class="sk sk-kpis__icon"></span>
       </span>
       <span class="sk sk-kpis__value"></span>
       <span v-if="delta" class="sk sk--pill sk-kpis__delta"></span>
+      <span v-if="spark" class="sk sk-kpis__spark"></span>
     </div>
     <span class="visually-hidden">{{ site.ui.loading }}</span>
   </div>
@@ -29,40 +35,43 @@ withDefaults(defineProps<{ count?: number; delta?: boolean }>(), { count: 4, del
 
   &__card {
     @include card;
-    @include flex(column, flex-start, flex-start, 0.6rem);
-    padding: 0.95rem 1rem 1rem;
-    min-height: 7.4rem;
+    @include flex(column, flex-start, flex-start, 0.55rem);
+    padding: $sp-4;
+    min-height: 8rem;
 
     @include from('md') {
-      padding: 1.25rem 1.35rem 1.3rem;
-      min-height: 8.6rem;
+      padding: $sp-5 $sp-5 $sp-4;
     }
   }
 
   &__head {
-    @include flex(row, center, flex-start, 0.45rem);
+    @include flex(row, flex-start, space-between, 0.45rem);
     width: 100%;
-    min-height: 1.4rem;
+    min-height: 2.25rem;
   }
 
   &__icon {
     flex: 0 0 auto;
-    width: 0.9rem;
-    height: 0.9rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: $radius-ctl;
   }
 
   &__value {
-    width: 72%;
-    height: 2rem;
-
-    @include from('md') {
-      height: 2.4rem;
-    }
+    width: 70%;
+    height: 1.9rem;
   }
 
   &__delta {
     width: 3.6rem;
-    height: 1.35rem;
+    height: 1.25rem;
+  }
+
+  &__spark {
+    width: 100%;
+    height: 2.25rem;
+    margin-top: auto;
+    opacity: 0.6;
   }
 }
 </style>
