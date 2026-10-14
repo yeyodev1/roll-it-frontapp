@@ -41,13 +41,18 @@ const TONE: Record<InvoiceStatus, BadgeTone> = {
               loading="lazy"
             />
             <span v-else class="ilist__thumb ilist__thumb--empty" aria-hidden="true"
-              ><i class="fa-solid fa-receipt"></i
+              ><i
+                :class="
+                  inv.source === 'closing' ? 'fa-solid fa-cash-register' : 'fa-solid fa-receipt'
+                "
+              ></i
             ></span>
             <span class="ilist__who">
               <strong>{{ inv.supplier || copy.noSupplier }}</strong>
               <small class="num">
                 {{ formatDate(inv.date || inv.createdAt) }}
                 <template v-if="inv.invoiceNumber"> · #{{ inv.invoiceNumber }}</template>
+                <template v-else-if="inv.source === 'closing'"> · {{ copy.closingTag }}</template>
                 <span v-if="showBranch" class="ilist__mbranch"> · {{ inv.branch.name }}</span>
               </small>
               <AppBadge class="ilist__mstatus" :tone="TONE[inv.status]" dot>{{
