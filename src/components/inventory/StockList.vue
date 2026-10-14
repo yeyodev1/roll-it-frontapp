@@ -1,190 +1,231 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import DataTable, { type TableColumn } from '@/components/ui/DataTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import StockGauge from './StockGauge.vue'
 import { inventoryCopy } from '@/config/inventoryCopy'
 import { formatQty } from '@/utils/format'
 import type { StockRow } from '@/types'
 
-defineProps<{ rows: StockRow[]; showBranch: boolean }>()
+/**
+ * Tabla de stock: insumo, cantidad, barra mín/máx, estado y días que alcanza.
+ * En el celular quedan insumo (con la cantidad debajo), estado y el botón de ajuste.
+ */
+const props = defineProps<{ rows: StockRow[]; showBranch: boolean }>()
 const emit = defineEmits<{ adjust: [row: StockRow] }>()
 
 const copy = inventoryCopy.stock
+const cols = copy.columns
 
-function days(row: StockRow) {
-  return row.daysLeft === null ? copy.noUse : copy.daysLeft(Math.floor(row.daysLeft))
+const columns: TableColumn[] = [
+  { key: 'name', label: cols.name },
+  { key: 'qty', label: cols.qty, align: 'right', hideOnMobile: true },
+  { key: 'gauge', label: copy.minMax, hideOnMobile: true },
+  { key: 'status', label: cols.status },
+  { key: 'days', label: cols.days, align: 'right', hideOnMobile: true },
+  { key: 'action', label: '', align: 'right' },
+]
+
+type Tone = 'danger' | 'warning' | 'neutral' | 'muted'
+
+// Lo que alcanza menos de 3 días pide compra ya; menos de una semana, pronto.
+function daysOf(r: StockRow): { text: string; tone: Tone } {
+  if (r.status === 'out') return { text: copy.outNow, tone: 'danger' }
+  if (r.daysLeft === null) return { text: copy.noUse, tone: 'muted' }
+  const d = Math.floor(r.daysLeft)
+  return { text: copy.daysShort(d), tone: d < 3 ? 'danger' : d < 7 ? 'warning' : 'neutral' }
 }
-const keyOf = (row: StockRow) => `${row.branch._id}-${row.ingredient._id}`
+
+const items = computed(() =>
+  props.rows.map((r) => ({
+    id: `${r.branch._id}-${r.ingredient._id}`,
+    row: r,
+    name: r.ingredient.name,
+    branch: r.branch.name,
+    qty: formatQty(r.quantity, r.ingredient.unit),
+    range: `${formatQty(r.minStock)} – ${formatQty(r.maxStock)}`,
+    status: r.status,
+    days: daysOf(r),
+  })),
+)
 </script>
 
 <template>
-  <!-- Celular: tarjetas que se tocan enteras para ajustar -->
-  <ul class="cards">
-    <li v-for="row in rows" :key="keyOf(row)">
-      <button
-        type="button"
-        class="item"
-        :class="`item--${row.status}`"
-        @click="emit('adjust', row)"
-      >
-        <span class="item__top">
-          <span class="item__name">
-            {{ row.ingredient.name }}
-            <small v-if="showBranch">{{ row.branch.name }}</small>
-          </span>
-          <StatusBadge :status="row.status" />
+  <DataTable :columns="columns" :rows="items" :caption="copy.title">
+    <template #cell-name="{ row }">
+      <span class="ing">
+        <span class="ing__dot" :class="`ing__dot--${row.status}`" aria-hidden="true"></span>
+        <span class="ing__text">
+          <strong>{{ row.name }}</strong>
+          <small>
+            <span v-if="showBranch">{{ row.branch }}</span>
+            <span class="ing__qty num">{{ row.qty }}</span>
+          </small>
         </span>
-        <span class="item__qty num">
-          {{ formatQty(row.quantity) }}<small>{{ row.ingredient.unit }}</small>
-        </span>
+      </span>
+    </template>
+    <template #cell-qty="{ row }">
+      <strong class="num">{{ row.qty }}</strong>
+    </template>
+    <template #cell-gauge="{ row }">
+      <span class="gauge">
         <StockGauge
-          :quantity="row.quantity"
-          :min="row.minStock"
-          :max="row.maxStock"
+          :quantity="row.row.quantity"
+          :min="row.row.minStock"
+          :max="row.row.maxStock"
           :status="row.status"
         />
-        <span class="item__foot">
-          <span>{{ days(row) }}</span>
-          <span
-            ><i class="fa-solid fa-sliders" aria-hidden="true"></i> {{ copy.actions.adjust }}</span
-          >
-        </span>
+        <small class="num">{{ row.range }}</small>
+      </span>
+    </template>
+    <template #cell-status="{ row }">
+      <StatusBadge :status="row.status" />
+    </template>
+    <template #cell-days="{ row }">
+      <span class="days num" :class="`days--${row.days.tone}`">{{ row.days.text }}</span>
+    </template>
+    <template #cell-action="{ row }">
+      <button
+        type="button"
+        class="adj"
+        :aria-label="`${copy.actions.adjust} ${row.name}`"
+        :title="copy.actions.adjust"
+        @click="emit('adjust', row.row)"
+      >
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+        <span>{{ copy.actions.adjust }}</span>
       </button>
-    </li>
-  </ul>
-
-  <!-- Escritorio: tabla -->
-  <div class="table-wrap desk">
-    <table>
-      <thead>
-        <tr>
-          <th>{{ copy.columns.name }}</th>
-          <th v-if="showBranch">{{ copy.columns.branch }}</th>
-          <th>{{ copy.columns.qty }}</th>
-          <th class="desk__gauge">{{ copy.minMax }}</th>
-          <th>{{ copy.columns.status }}</th>
-          <th>{{ copy.columns.days }}</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="row in rows" :key="keyOf(row)">
-          <td class="desk__name">{{ row.ingredient.name }}</td>
-          <td v-if="showBranch" class="muted">{{ row.branch.name }}</td>
-          <td class="num desk__qty">{{ formatQty(row.quantity, row.ingredient.unit) }}</td>
-          <td class="desk__gauge">
-            <StockGauge
-              :quantity="row.quantity"
-              :min="row.minStock"
-              :max="row.maxStock"
-              :status="row.status"
-            />
-            <span class="muted num"
-              >{{ formatQty(row.minStock) }} / {{ formatQty(row.maxStock) }}</span
-            >
-          </td>
-          <td><StatusBadge :status="row.status" /></td>
-          <td class="muted">{{ days(row) }}</td>
-          <td class="desk__action">
-            <button class="btn btn--ghost btn--sm" @click="emit('adjust', row)">
-              <i class="fa-solid fa-sliders" aria-hidden="true"></i> {{ copy.actions.adjust }}
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    </template>
+  </DataTable>
 </template>
 
 <style scoped lang="scss">
-.cards {
-  list-style: none;
-  @include flex-cards(260px, 0.6rem);
-
-  @include from('lg') {
-    display: none;
+// En el celular la tabla tiene que entrar entera: pastilla de estado más chica.
+:deep(.badge) {
+  @include until('md') {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
   }
 }
 
-.item {
-  @include card;
-  @include flex(column, stretch, flex-start, 0.55rem);
-  width: 100%;
-  padding: 0.95rem 1rem 0.85rem;
-  text-align: left;
+.ing {
+  @include flex(row, center, flex-start, 0.65rem);
 
-  &--out {
-    border-color: rgba($danger, 0.45);
-  }
+  &__dot {
+    flex-shrink: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
 
-  &__top {
-    @include flex(row, flex-start, space-between, 0.6rem);
-  }
+    &--out {
+      background: $danger;
+    }
 
-  &__name {
-    font-weight: 600;
-    line-height: 1.3;
+    &--low {
+      background: $warning;
+    }
 
-    small {
-      display: block;
-      font-weight: 400;
-      font-size: $text-xs;
-      color: $ink-muted;
+    &--ok {
+      background: $success;
+    }
+
+    &--over {
+      background: $info;
     }
   }
 
-  &__qty {
-    @include display($display-sm, 500);
+  &__text {
+    @include flex(column, flex-start, center);
+    line-height: 1.25;
+    min-width: 0;
 
-    small {
-      font-family: $font-principal;
-      font-size: $text-sm;
-      font-weight: 500;
-      color: $ink-muted;
-      margin-left: 0.3rem;
-    }
-  }
-
-  &__foot {
-    @include flex(row, center, space-between, 0.5rem);
-    font-size: $text-xs;
-    color: $ink-muted;
-
-    span:last-child {
-      color: $accent-deep;
+    strong {
       font-weight: 600;
+      white-space: normal;
+    }
+
+    small {
+      @include flex(row, center, flex-start, 0.4rem);
+      font-size: 0.7rem;
+      color: $ink-muted;
+    }
+  }
+
+  // La cantidad va debajo del nombre solo en el celular: en escritorio tiene su columna.
+  &__qty {
+    font-weight: 600;
+    color: $ink-soft;
+
+    @include from('md') {
+      display: none;
     }
   }
 }
 
-.desk {
-  display: none;
+.gauge {
+  @include flex(column, stretch, flex-start, 0.3rem);
+  width: 9rem;
 
-  @include from('lg') {
-    display: block;
+  small {
+    font-size: 0.68rem;
+    color: $ink-muted;
+  }
+}
+
+.days {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: $radius-pill;
+  font-size: 0.74rem;
+  font-weight: 600;
+
+  &--danger {
+    color: darken($danger, 6%);
+    background: $danger-bg;
   }
 
-  &__name {
-    font-weight: 600;
+  &--warning {
+    color: darken($warning, 20%);
+    background: $warning-bg;
   }
 
-  &__qty {
-    font-weight: 600;
-    white-space: nowrap;
+  &--neutral {
+    color: $ink-soft;
+    background: $canvas;
   }
 
-  &__gauge {
-    width: 22%;
-    min-width: 150px;
+  &--muted {
+    color: $ink-muted;
+  }
+}
 
-    .muted {
-      display: block;
-      margin-top: 0.35rem;
-      font-size: $text-xs;
+.adj {
+  @include flex(row, center, center, 0.4rem);
+  min-height: 2.1rem;
+  padding: 0 0.75rem;
+  border-radius: $radius-pill;
+  border: 1px solid $line;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: $ink;
+  @include transition;
+
+  &:hover {
+    border-color: $ink;
+    background: $ink;
+    color: $surface;
+  }
+
+  // En el celular solo el ícono: el nombre ya está en la fila.
+  span {
+    @include until('md') {
+      display: none;
     }
   }
 
-  &__action {
-    text-align: right;
+  @include until('md') {
+    width: 2.1rem;
+    padding: 0;
   }
 }
 </style>
