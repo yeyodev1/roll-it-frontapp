@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import ChartCard from '@/components/ui/ChartCard.vue'
+import AppBadge, { type BadgeTone } from '@/components/ui/AppBadge.vue'
 import LoadError from '@/components/ui/LoadError.vue'
 import InvoiceDetailSkeleton from '@/components/invoices/InvoiceDetailSkeleton.vue'
-import BaseModal from '@/components/ui/BaseModal.vue'
 import AppDatePicker from '@/components/ui/AppDatePicker.vue'
 import InvoiceImage from '@/components/invoices/InvoiceImage.vue'
 import InvoiceLines from '@/components/invoices/InvoiceLines.vue'
+import InvoiceActions from '@/components/invoices/InvoiceActions.vue'
 import { useInvoiceEditor } from '@/composables/useInvoiceEditor'
 import { inventoryCopy } from '@/config/inventoryCopy'
 import { site } from '@/config/site'
@@ -22,17 +24,10 @@ const { invoice, loading, error, busy, form, lines, editable, unlinked, totalCen
 
 // Una factura no puede ser de mañana.
 const today = ecuadorDay()
-const confirming = ref(false)
-const rejecting = ref(false)
-
-async function doConfirm() {
-  confirming.value = false
-  await editor.confirm()
-}
-
-async function doReject() {
-  rejecting.value = false
-  await editor.reject()
+const TONE: Record<string, BadgeTone> = {
+  review: 'warning',
+  confirmed: 'success',
+  rejected: 'danger',
 }
 
 const load = () => editor.load(String(route.params.id))
@@ -41,13 +36,11 @@ onMounted(load)
 
 <template>
   <div class="page detail">
-    <PageHeader
-      :title="copy.title"
-      :subtitle="
-        invoice ? `${invoice.branch.name} · ${site.invoiceStatus[invoice.status]}` : undefined
-      "
-    >
+    <PageHeader :title="copy.title" :subtitle="invoice?.branch.name">
       <template #actions>
+        <AppBadge v-if="invoice" :tone="TONE[invoice.status]" dot>
+          {{ site.invoiceStatus[invoice.status] }}
+        </AppBadge>
         <RouterLink class="btn btn--ghost btn--sm" :to="{ name: 'Invoices' }">
           <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
           {{ inventoryCopy.invoices.title }}
@@ -60,6 +53,10 @@ onMounted(load)
     <div v-else class="detail__body">
       <aside class="detail__photo">
         <InvoiceImage v-if="invoice.imageUrl" :src="invoice.imageUrl" />
+        <div v-else class="nophoto">
+          <i class="fa-solid fa-receipt" aria-hidden="true"></i>
+          <span>{{ copy.noPhoto }}</span>
+        </div>
         <p v-if="invoice.aiError" class="ai-error">
           <i class="fa-solid fa-robot" aria-hidden="true"></i>
           {{ copy.aiError }} · <span>{{ invoice.aiError }}</span>
@@ -71,84 +68,64 @@ onMounted(load)
           <i class="fa-solid fa-lock" aria-hidden="true"></i> {{ copy.readOnly }}
         </p>
 
-        <div class="head-fields">
-          <div class="field head-fields__supplier">
-            <label for="inv-supplier">{{ copy.supplier }}</label>
-            <input id="inv-supplier" v-model="form.supplier" type="text" :disabled="!editable" />
+        <ChartCard :title="copy.data">
+          <div class="head-fields">
+            <div class="field head-fields__supplier">
+              <label for="inv-supplier">{{ copy.supplier }}</label>
+              <input id="inv-supplier" v-model="form.supplier" type="text" :disabled="!editable" />
+            </div>
+            <div class="field">
+              <label for="inv-number">{{ copy.number }}</label>
+              <input
+                id="inv-number"
+                v-model="form.invoiceNumber"
+                type="text"
+                :disabled="!editable"
+              />
+            </div>
+            <div class="field">
+              <label for="inv-date">{{ copy.date }}</label>
+              <AppDatePicker
+                id="inv-date"
+                v-model="form.date"
+                :label="copy.date"
+                :max="today"
+                :disabled="!editable"
+              />
+            </div>
           </div>
-          <div class="field">
-            <label for="inv-number">{{ copy.number }}</label>
-            <input id="inv-number" v-model="form.invoiceNumber" type="text" :disabled="!editable" />
-          </div>
-          <div class="field">
-            <label for="inv-date">{{ copy.date }}</label>
-            <AppDatePicker
-              id="inv-date"
-              v-model="form.date"
-              :label="copy.date"
-              :max="today"
-              :disabled="!editable"
-            />
-          </div>
-        </div>
+        </ChartCard>
 
-        <h2 class="detail__lines-title">{{ copy.lines }}</h2>
-        <p v-if="unlinked && editable" class="warn">
-          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-          {{ copy.unlinked(unlinked) }}
-        </p>
-        <InvoiceLines
-          :lines="lines"
-          :editable="editable"
-          @add="editor.addLine"
-          @remove="editor.removeLine"
-        />
-
-        <div class="total">
-          <span>{{ copy.total }}</span>
-          <strong class="num">{{ formatCents(totalCents) }}</strong>
-        </div>
+        <ChartCard :title="copy.lines" :subtitle="copy.linesCount(lines.length)">
+          <p v-if="unlinked && editable" class="warn">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            {{ copy.unlinked(unlinked) }}
+          </p>
+          <InvoiceLines
+            :lines="lines"
+            :editable="editable"
+            @add="editor.addLine"
+            @remove="editor.removeLine"
+          />
+          <template #footer>
+            <div class="total">
+              <span>{{ copy.total }}</span>
+              <strong class="num">{{ formatCents(totalCents) }}</strong>
+            </div>
+          </template>
+        </ChartCard>
       </section>
     </div>
 
-    <div v-if="invoice && editable" class="actions">
-      <button class="btn btn--ghost" :disabled="busy" @click="rejecting = true">
-        <i class="fa-solid fa-ban" aria-hidden="true"></i> {{ copy.reject }}
-      </button>
-      <button class="btn btn--ghost" :disabled="busy" @click="editor.save">
-        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> {{ copy.save }}
-      </button>
-      <button
-        class="btn btn--primary actions__main"
-        :disabled="busy || !summary.length"
-        @click="confirming = true"
-      >
-        <i class="fa-solid fa-check" aria-hidden="true"></i> {{ copy.confirm }}
-      </button>
-    </div>
-
-    <BaseModal
-      :open="confirming"
-      :title="copy.confirmTitle"
-      :message="invoice ? copy.confirmMessage(invoice.branch.name) : ''"
-      :confirm-label="copy.confirm"
-      @confirm="doConfirm"
-      @cancel="confirming = false"
-    >
-      <ul class="summary">
-        <li v-for="text in summary" :key="text" class="num">{{ text }}</li>
-      </ul>
-      <p v-if="unlinked" class="warn">{{ copy.unlinked(unlinked) }}</p>
-    </BaseModal>
-
-    <BaseModal
-      :open="rejecting"
-      :title="copy.rejectTitle"
-      :message="copy.rejectMessage"
-      :confirm-label="copy.reject"
-      danger
-      @confirm="doReject"
-      @cancel="rejecting = false"
+    <InvoiceActions
+      v-if="invoice && editable"
+      :branch="invoice.branch.name"
+      :summary="summary"
+      :unlinked="unlinked"
+      :busy="busy"
+      @save="editor.save"
+      @confirm="editor.confirm"
+      @reject="editor.reject"
     />
   </div>
 </template>
@@ -158,7 +135,7 @@ onMounted(load)
   padding-bottom: 7rem;
 
   &__body {
-    @include flex(column, stretch, flex-start, 1.25rem);
+    @include flex(column, stretch, flex-start, $sp-4);
 
     @include from('lg') {
       flex-direction: row;
@@ -170,22 +147,33 @@ onMounted(load)
     @include flex(column, stretch, flex-start, 0.6rem);
 
     @include from('lg') {
-      flex: 0 0 38%;
+      flex: 0 0 36%;
       position: sticky;
-      top: 1rem;
+      top: 5rem;
     }
   }
 
   &__form {
-    @include flex(column, stretch, flex-start, 0.8rem);
+    @include flex(column, stretch, flex-start, $sp-4);
     flex: 1;
     min-width: 0;
   }
+}
 
-  &__lines-title {
-    @include eyebrow;
-    color: $ink-muted;
-    margin-top: 0.4rem;
+.nophoto {
+  @include card;
+  @include flex(column, center, center, 0.5rem);
+  min-height: 7rem;
+  color: $ink-muted;
+
+  @include from('lg') {
+    min-height: 14rem;
+  }
+  font-size: 0.82rem;
+
+  i {
+    font-size: 1.8rem;
+    color: $line;
   }
 }
 
@@ -227,59 +215,14 @@ onMounted(load)
 
 .total {
   @include flex(row, baseline, space-between, 1rem);
-  padding: 0.8rem 0.2rem 0;
-  border-top: 2px solid $ink;
 
   span {
-    @include eyebrow;
-    color: $ink;
+    @include card-label;
+    font-weight: 600;
   }
 
   strong {
-    @include display($text-xl, 600);
-  }
-}
-
-.actions {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 50;
-  @include flex(row, center, flex-end, 0.5rem);
-  padding: 0.8rem 1rem calc(0.8rem + env(safe-area-inset-bottom));
-  background: rgba($surface, 0.94);
-  backdrop-filter: blur(8px);
-  border-top: 1px solid $line;
-
-  .btn {
-    padding-inline: 1rem;
-  }
-
-  &__main {
-    flex: 1 1 auto;
-
-    @include from('md') {
-      flex: 0 0 auto;
-    }
-  }
-}
-
-.summary {
-  list-style: none;
-  width: 100%;
-  text-align: left;
-  font-weight: 600;
-  font-size: $text-sm;
-  max-height: 14rem;
-  overflow-y: auto;
-  padding: 0.6rem 0.8rem;
-  border-radius: $radius-sm;
-  background: $success-bg;
-  color: darken($success, 18%);
-
-  li + li {
-    margin-top: 0.2rem;
+    @include figure(1.5rem);
   }
 }
 </style>
