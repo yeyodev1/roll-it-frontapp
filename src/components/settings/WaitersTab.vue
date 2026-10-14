@@ -22,7 +22,7 @@ const res = useSettingsResource<Waiter, { name: string }>({
   update: (id, p) => catalogService.updateWaiter(id, p),
   validate: (f) => (f.name.trim() ? null : copy.waiter.name),
 })
-const { items, loading, saving, sheetOpen, form } = res
+const { items, loading, error, saving, sheetOpen, form } = res
 
 const branchName = (id: string) => filters.branches.find((b) => b._id === id)?.name || ''
 
@@ -31,7 +31,13 @@ onMounted(res.load)
 </script>
 
 <template>
-  <SettingsSection :loading="loading" :empty="!items.length" :help="copy.waiter.help">
+  <SettingsSection
+    :loading="loading"
+    :error="error"
+    @retry="res.load"
+    :empty="!items.length"
+    :help="copy.waiter.help"
+  >
     <template #tools>
       <BranchPicker v-model="branch" allow-all />
     </template>
