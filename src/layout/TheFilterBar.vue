@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppDateRange from '@/components/ui/AppDateRange.vue'
 import DataUntilNotice from '@/components/ui/DataUntilNotice.vue'
@@ -11,6 +12,7 @@ import { useFiltersStore, type RangePreset } from '@/stores/filters'
 import { useLastSync } from '@/composables/useLastSync'
 import { useTimeAgo } from '@/composables/useTimeAgo'
 import { useUserStore } from '@/stores/user'
+import { formatDate } from '@/utils/format'
 
 const props = defineProps<{ lastSyncAt?: string | null }>()
 
@@ -41,6 +43,22 @@ const branch = computed({
 function pick(preset: RangePreset) {
   filters.setPreset(preset)
 }
+
+// Finanzas compara mes contra mes: el rango de fechas no le aplica y se oculta.
+const route = useRoute()
+const showRange = computed(() => !route.path.startsWith('/finanzas'))
+
+// Con los datos atrasados "Hoy" sería un día sin ventas: se muestra el último día con datos.
+const rangeLabel = (value: RangePreset, label: string) =>
+  value === 'today' && filters.isBehind ? copy.lastDay : label
+
+// Un día 'YYYY-MM-DD' a mediodía de Ecuador: a medianoche UTC se pintaría el día anterior.
+const dayLabel = (key: string) => formatDate(`${key}T12:00:00-05:00`)
+const rangeText = computed(() =>
+  filters.from === filters.to
+    ? dayLabel(filters.from)
+    : `${dayLabel(filters.from)} – ${dayLabel(filters.to)}`,
+)
 </script>
 
 <template>
@@ -55,7 +73,7 @@ function pick(preset: RangePreset) {
         pill
       />
 
-      <div class="filters__seg" role="group" :aria-label="copy.range">
+      <div v-if="showRange" class="filters__seg" role="group" :aria-label="copy.range">
         <button
           v-for="r in site.ranges"
           :key="r.value"
@@ -64,7 +82,7 @@ function pick(preset: RangePreset) {
           :aria-pressed="filters.preset === r.value"
           @click="pick(r.value)"
         >
-          {{ r.label }}
+          {{ rangeLabel(r.value, r.label) }}
         </button>
         <AppDateRange
           chip
@@ -77,6 +95,14 @@ function pick(preset: RangePreset) {
           @apply="filters.setRange"
         />
       </div>
+      <p v-if="showRange" class="filters__range">
+        <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+        {{ rangeText }}
+      </p>
+      <p v-else class="filters__range">
+        <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+        {{ copy.financeMonthly }}
+      </p>
 
       <!-- Datos atrasados: el dueño sube el reporte de SmartMenu desde la misma pastilla. -->
       <DataUntilNotice v-if="filters.isBehind" class="filters__until">
@@ -94,6 +120,21 @@ function pick(preset: RangePreset) {
 </template>
 
 <style scoped lang="scss">
+.filters__range {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $ink;
+  @include tabular;
+
+  i {
+    color: $accent;
+  }
+}
+
 .filters {
   padding: $sp-3 $sp-4 0;
 
