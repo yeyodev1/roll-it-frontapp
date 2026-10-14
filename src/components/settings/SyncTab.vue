@@ -5,6 +5,7 @@ import AppBadge from '@/components/ui/AppBadge.vue'
 import LoadError from '@/components/ui/LoadError.vue'
 import SkeletonCards from '@/components/ui/skeleton/SkeletonCards.vue'
 import SalesReportUpload from '@/components/sync/SalesReportUpload.vue'
+import AgentStatusRow from '@/components/sync/AgentStatusRow.vue'
 import { useSettingsSync } from '@/composables/useSettingsSync'
 import { inventoryCopy } from '@/config/inventoryCopy'
 import { dashboardCopy } from '@/config/dashboardCopy'
@@ -72,6 +73,7 @@ onMounted(load)
             <dd class="num">{{ s.salesToday }}</dd>
           </div>
         </dl>
+        <AgentStatusRow :agent="s.agent" />
       </li>
     </ul>
   </section>
