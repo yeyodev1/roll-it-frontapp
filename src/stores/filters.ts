@@ -54,6 +54,9 @@ export const useFiltersStore = defineStore('filters', {
     // Las vistas esperan a tener sucursales antes de pedir datos: así el rango
     // ya está anclado y no se dispara una carga con fechas que luego cambian.
     ready: false,
+    // Sube cuando entran ventas nuevas (reporte subido a mano): las vistas recargan
+    // aunque el rango de fechas no haya cambiado.
+    dataVersion: 0,
   }),
 
   getters: {
@@ -95,6 +98,11 @@ export const useFiltersStore = defineStore('filters', {
       // El rango personalizado es decisión del dueño: no se toca.
       if (this.preset !== 'custom') this.setPreset(this.preset)
       this.ready = true
+    },
+
+    /** Avisa a las vistas que hay ventas nuevas: recargan sus datos. */
+    bumpData() {
+      this.dataVersion++
     },
 
     /** Sin sucursales (falló la carga): las vistas igual cargan con el rango que haya. */
