@@ -1,5 +1,6 @@
 @use 'sass:map';
 @use 'colorVariables.module.scss' as *;
+@use 'typography' as *;
 
 // Breakpoints mobile-first. Uso: @include from('md') { ... }
 $breakpoints: (
@@ -62,8 +63,9 @@ $breakpoints: (
 
 @mixin card {
   background: $surface;
-  border: 1px solid $line;
-  border-radius: 14px;
+  border: 1px solid rgba($line, 0.6);
+  border-radius: $radius-card;
+  box-shadow: $shadow-card;
 }
 
 @mixin transition($props: all) {
