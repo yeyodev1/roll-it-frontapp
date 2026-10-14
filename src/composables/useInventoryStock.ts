@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { inventoryService, type StockCounts } from '@/services/inventory.service'
 import { useToastStore } from '@/stores/toast'
+import { useAutoRefresh } from './useAutoRefresh'
 import type { ApiError, StockRow, StockStatus } from '@/types'
 
 /** Quita tildes y mayúsculas para que "salmon" encuentre "Salmón". */
@@ -16,6 +17,7 @@ export function useInventoryStock() {
   const rows = ref<StockRow[]>([])
   const counts = ref<StockCounts>({ out: 0, low: 0, ok: 0, over: 0 })
   const loading = ref(false)
+  const error = ref('')
   const status = ref<StockStatus | ''>('')
   const search = ref('')
 
@@ -31,18 +33,40 @@ export function useInventoryStock() {
       )
   })
 
-  async function load(branch: string) {
-    loading.value = true
+  let current: string | null = null
+  let lastRequest = 0
+
+  /**
+   * `silent` es el refresco en segundo plano: no pinta skeleton y, si falla,
+   * deja la lista que ya se ve sin repetir el aviso.
+   */
+  async function load(branch: string, silent = false) {
+    current = branch
+    const id = ++lastRequest
+    if (!silent) {
+      loading.value = true
+      error.value = ''
+    }
     try {
       const data = await inventoryService.list(branch)
+      if (id !== lastRequest) return
       rows.value = data.rows
       counts.value = data.counts
+      error.value = ''
+      auto.markFresh()
     } catch (e) {
-      toast.error((e as ApiError).message)
+      if (id !== lastRequest || (silent && rows.value.length)) return
+      error.value = (e as ApiError).message
+      toast.error(error.value)
     } finally {
-      loading.value = false
+      if (id === lastRequest && !silent) loading.value = false
     }
   }
+
+  // El stock baja con cada venta que llega de SmartMenu: se refresca solo cada minuto.
+  const auto = useAutoRefresh(async () => {
+    if (current !== null && !loading.value) await load(current, true)
+  })
 
   /** Reemplaza la fila tras un ajuste sin recargar toda la lista. */
   function replaceRow(row: StockRow) {
@@ -62,5 +86,18 @@ export function useInventoryStock() {
     status.value = status.value === value ? '' : value
   }
 
-  return { rows, counts, loading, status, search, filtered, load, replaceRow, toggleStatus }
+  return {
+    rows,
+    counts,
+    loading,
+    error,
+    status,
+    search,
+    filtered,
+    load,
+    replaceRow,
+    toggleStatus,
+    updatedAt: auto.updatedAt,
+    refreshing: auto.refreshing,
+  }
 }
