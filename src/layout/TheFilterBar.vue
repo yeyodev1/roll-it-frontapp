@@ -6,6 +6,7 @@ import AppDateRange from '@/components/ui/AppDateRange.vue'
 import DataUntilNotice from '@/components/ui/DataUntilNotice.vue'
 import SalesUploadAction from '@/components/sync/SalesUploadAction.vue'
 import SalesUploadModal from '@/components/sync/SalesUploadModal.vue'
+import AgentStatusPill from '@/components/sync/AgentStatusPill.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
 import { useFiltersStore, type RangePreset } from '@/stores/filters'
@@ -114,6 +115,8 @@ const rangeText = computed(() =>
         <template v-else>{{ copy.neverSynced }}</template>
         <SalesUploadAction v-if="stale && user.isAdmin" />
       </p>
+      <!-- /sync/status es solo admin: el personal no ve el estado del agente. -->
+      <AgentStatusPill v-if="user.isAdmin" />
     </div>
     <SalesUploadModal v-if="user.isAdmin" />
   </div>
