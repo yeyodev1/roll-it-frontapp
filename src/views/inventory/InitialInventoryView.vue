@@ -2,7 +2,8 @@
 import { computed, onMounted, watch } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import { site } from '@/config/site'
 import BranchPicker from '@/components/inventory/BranchPicker.vue'
 import { useInventoryBranch } from '@/composables/useInventoryBranch'
 import { useInventoryInitial } from '@/composables/useInventoryInitial'
@@ -12,7 +13,7 @@ import { formatQty } from '@/utils/format'
 
 const copy = inventoryCopy.initial
 const { branch, branchName, isStaff, ensureBranches } = useInventoryBranch({ allowAll: false })
-const { rows, loading, saving, search, changed, load, save } = useInventoryInitial()
+const { rows, loading, error, saving, search, changed, load, save } = useInventoryInitial()
 
 const visible = computed(() => {
   const term = normalize(search.value)
@@ -42,7 +43,18 @@ onMounted(async () => {
     <template v-if="branch">
       <input v-model="search" type="search" :placeholder="inventoryCopy.stock.search" />
 
-      <LoadingBlock v-if="loading" />
+      <!-- Skeleton con la forma de cada fila: nombre a la izquierda, casilla de cantidad a la derecha. -->
+      <ul v-if="loading" class="count" role="status" aria-busy="true">
+        <li v-for="n in 8" :key="n" class="count__row" aria-hidden="true">
+          <span class="count__name">
+            <span class="sk sk--line" :style="{ width: `${40 + (n % 4) * 9}%` }"></span>
+            <span class="sk sk--line count__sk-meta"></span>
+          </span>
+          <span class="sk count__sk-input"></span>
+        </li>
+        <li class="visually-hidden">{{ site.ui.loading }}</li>
+      </ul>
+      <LoadError v-else-if="error" :message="error" @retry="load(branch)" />
       <EmptyState
         v-else-if="!visible.length"
         icon="fa-solid fa-box-open"
@@ -127,6 +139,18 @@ onMounted(async () => {
       font-weight: 400;
       color: $ink-muted;
     }
+  }
+
+  &__sk-meta {
+    width: 4rem;
+    height: 0.6rem;
+    margin-top: 0.45rem;
+  }
+
+  &__sk-input {
+    flex: 0 0 auto;
+    width: 11rem;
+    height: 3.1rem;
   }
 
   &__input {
