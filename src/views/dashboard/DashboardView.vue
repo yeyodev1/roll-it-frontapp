@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import PageHeader from '@/components/ui/PageHeader.vue'
 import KpiCard from '@/components/ui/KpiCard.vue'
+import ChartCard from '@/components/ui/ChartCard.vue'
+import DeltaBadge from '@/components/ui/DeltaBadge.vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import LoadError from '@/components/ui/LoadError.vue'
 import RefreshStamp from '@/components/ui/RefreshStamp.vue'
-import DataUntilNotice from '@/components/ui/DataUntilNotice.vue'
 import SkeletonKpi from '@/components/ui/skeleton/SkeletonKpi.vue'
 import SkeletonChart from '@/components/ui/skeleton/SkeletonChart.vue'
-import SkeletonList from '@/components/ui/skeleton/SkeletonList.vue'
-import LineChart from '@/components/charts/LineChart.vue'
-import BarList from '@/components/charts/BarList.vue'
+import SkeletonTable from '@/components/ui/skeleton/SkeletonTable.vue'
+import AreaChart from '@/components/charts/AreaChart.vue'
+import DonutChart from '@/components/charts/DonutChart.vue'
+import BranchRanking from '@/components/dashboard/BranchRanking.vue'
+import InventoryAlertsCard from '@/components/dashboard/InventoryAlertsCard.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
 import { useCeoSummary } from '@/composables/useCeoSummary'
@@ -23,7 +26,7 @@ const copy = dashboardCopy.ceo
 const filters = useFiltersStore()
 const ceo = useCeoSummary()
 const { data, loading, error, updatedAt, refreshing } = ceo
-const { kpis, daily, branches, alerts, hasAlerts, isEmpty } = ceo
+const { kpis, daily, periodDelta, branches, multiBranch, alerts, isEmpty } = ceo
 const syncAgo = useTimeAgo(() => data.value?.lastSyncAt)
 </script>
 
@@ -35,16 +38,15 @@ const syncAgo = useTimeAgo(() => data.value?.lastSyncAt)
       </template>
     </PageHeader>
 
-    <DataUntilNotice banner />
-
     <template v-if="loading">
-      <SkeletonKpi :count="4" />
+      <SkeletonKpi :count="4" spark />
       <div class="ceo__row">
-        <SkeletonChart class="ceo__chart" :height="200" />
-        <div class="ceo__side">
-          <SkeletonList :rows="2" :trailing="false" />
-          <SkeletonList v-if="filters.branch === 'all'" variant="bars" :rows="3" title />
-        </div>
+        <SkeletonChart class="ceo__main" variant="area" :height="240" />
+        <SkeletonChart class="ceo__side" variant="donut" />
+      </div>
+      <div v-if="filters.branch === 'all'" class="ceo__row">
+        <SkeletonTable class="ceo__main" :rows="3" :cols="4" />
+        <SkeletonChart class="ceo__side" variant="donut" :title="true" />
       </div>
     </template>
 
@@ -62,52 +64,48 @@ const syncAgo = useTimeAgo(() => data.value?.lastSyncAt)
         :text="dashboardCopy.states.noDataText"
       />
 
-      <div v-else class="ceo__row">
-        <section class="card ceo__chart">
-          <h2 class="card__title">{{ copy.daily }}</h2>
-          <LineChart
-            :labels="daily.labels"
-            :series="daily.series"
-            :series-label="copy.daily"
-            :format="formatCents"
-            :axis-format="compactCents"
-          />
-        </section>
+      <template v-else>
+        <div class="ceo__row">
+          <ChartCard class="ceo__main" :title="copy.daily" :help="site.help.daily">
+            <template #action>
+              <span class="ceo__total">
+                <small>{{ copy.dailyTotal }}</small>
+                <strong class="num">{{ formatCents(data.salesCents) }}</strong>
+              </span>
+              <DeltaBadge :value="periodDelta" />
+            </template>
+            <AreaChart
+              :labels="daily.labels"
+              :series="daily.series"
+              :series-label="copy.sales"
+              :format="formatCents"
+              :axis-format="compactCents"
+              :height="270"
+            />
+          </ChartCard>
 
-        <div class="ceo__side">
-          <RouterLink
-            to="/inventario"
-            class="card ceo__alerts"
-            :class="{ 'ceo__alerts--warn': hasAlerts }"
+          <ChartCard
+            v-if="multiBranch"
+            class="ceo__side"
+            :title="copy.share"
+            :help="site.help.byBranch"
           >
-            <h2 class="card__title">
-              <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>{{ copy.alerts }}
-              <InfoTip :text="site.help.inventoryAlerts" />
-            </h2>
-            <div v-if="hasAlerts" class="ceo__alert-nums">
-              <p>
-                <strong class="num ceo__out">{{ alerts.out }}</strong
-                >{{ copy.alertsOut }}
-              </p>
-              <p>
-                <strong class="num ceo__low">{{ alerts.low }}</strong
-                >{{ copy.alertsLow }}
-              </p>
-            </div>
-            <p v-else class="ceo__ok">
-              <i class="fa-solid fa-circle-check" aria-hidden="true"></i>{{ copy.alertsOk }}
-            </p>
-            <span class="ceo__cta"
-              >{{ copy.alertsCta }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i
-            ></span>
-          </RouterLink>
-
-          <section v-if="filters.branch === 'all' && branches.length > 1" class="card">
-            <h2 class="card__title">{{ copy.byBranch }} <InfoTip :text="site.help.byBranch" /></h2>
-            <BarList :items="branches" />
-          </section>
+            <DonutChart
+              :items="branches"
+              :center-label="copy.shareTotal"
+              :center-value="compactCents(data.salesCents)"
+            />
+          </ChartCard>
+          <InventoryAlertsCard v-else class="ceo__side" v-bind="alerts" />
         </div>
-      </div>
+
+        <div v-if="multiBranch" class="ceo__row">
+          <ChartCard class="ceo__main" :title="copy.ranking" :help="site.help.ranking" flush>
+            <BranchRanking :rows="branches" />
+          </ChartCard>
+          <InventoryAlertsCard class="ceo__side" v-bind="alerts" />
+        </div>
+      </template>
 
       <p class="ceo__sync">
         <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
@@ -124,91 +122,54 @@ const syncAgo = useTimeAgo(() => data.value?.lastSyncAt)
 <style scoped lang="scss">
 .ceo {
   &__kpis {
-    @include flex-cards(150px, 0.75rem);
+    @include flex-cards(150px, $sp-3);
 
     @include from('md') {
-      @include flex-cards(200px, 1rem);
+      @include flex-cards(220px, $sp-4);
     }
   }
 
   &__row {
-    @include flex(column, stretch, flex-start, 1rem);
+    @include flex(column, stretch, flex-start, $sp-3);
+
+    @include from('md') {
+      gap: $sp-4;
+    }
 
     @include from('lg') {
       flex-direction: row;
-      align-items: flex-start;
     }
   }
 
-  &__chart {
+  &__main {
     flex: 2 1 0;
     min-width: 0;
   }
 
   &__side {
-    @include flex(column, stretch, flex-start, 1rem);
     flex: 1 1 0;
     min-width: 0;
   }
 
-  &__alerts {
-    display: block;
-    @include transition(border-color);
+  &__total {
+    @include flex(column, flex-end, flex-start);
+    line-height: 1.2;
 
-    &:hover {
-      border-color: $ink-muted;
-    }
-
-    &--warn {
-      border-color: rgba($danger, 0.35);
-      background: linear-gradient(180deg, $danger-bg, $surface 70%);
-    }
-  }
-
-  &__alert-nums {
-    @include flex(row, baseline, flex-start, 1.5rem);
-
-    p {
-      @include flex(column, flex-start, flex-start, 0.1rem);
-      font-size: 0.8rem;
-      color: $ink-soft;
+    small {
+      font-size: 0.68rem;
+      color: $ink-muted;
     }
 
     strong {
-      font-family: $font-display;
-      font-size: 2.4rem;
-      font-weight: 500;
-      line-height: 1;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: $ink;
     }
-  }
-
-  &__out {
-    color: $danger;
-  }
-
-  &__low {
-    color: darken($warning, 14%);
-  }
-
-  &__ok {
-    @include flex(row, center, flex-start, 0.5rem);
-    font-weight: 600;
-    color: darken($success, 12%);
-  }
-
-  &__cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-top: 1rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: $accent-deep;
   }
 
   &__sync {
     @include flex(row, center, flex-start, 0.5rem);
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     color: $ink-muted;
 
     i {
