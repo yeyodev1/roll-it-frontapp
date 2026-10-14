@@ -36,6 +36,11 @@
   --chart-3: #{$chart-3};
   --chart-4: #{$chart-4};
   --chart-compare: #{$chart-compare};
+  // Estados, para gráficos que pintan por nivel (meseros, stock).
+  --success: #{$success};
+  --warning: #{$warning};
+  --info: #{$info};
+  --danger: #{$danger};
 }
 
 html {
