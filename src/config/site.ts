@@ -149,6 +149,8 @@ export const site = {
       'Excel o CSV con las columnas Plato, Ingrediente, Cantidad y Unidad. Cada venta descuenta del inventario según su receta.',
     salesUpload:
       'En SmartMenu: Reportes → Ventas detallado → exportar a Excel, y súbelo aquí. Se puede subir el mismo archivo varias veces sin duplicar.',
+    recipeCoverage:
+      'Parte de los platos activos que tienen receta. Solo esos descuentan insumos del inventario al venderse.',
     sync: 'Las ventas llegan desde el SmartMenu de cada sucursal. Si el equipo del local está apagado, se actualizan cuando se vuelva a prender.',
   },
 } as const
