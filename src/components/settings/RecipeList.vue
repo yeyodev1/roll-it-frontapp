@@ -1,116 +1,167 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import DataTable, { type TableColumn } from '@/components/ui/DataTable.vue'
+import AppBadge from '@/components/ui/AppBadge.vue'
 import { inventoryCopy } from '@/config/inventoryCopy'
 import { formatCents, formatQty } from '@/utils/format'
 import type { Product, Recipe } from '@/types'
 
-defineProps<{ products: Product[]; recipes: Map<string, Recipe> }>()
+/**
+ * Platos con su receta: precio, primeros insumos (el resto como "+n") y si
+ * tienen receta. Sin receta, sus ventas no descuentan inventario.
+ */
+const props = defineProps<{ products: Product[]; recipes: Map<string, Recipe> }>()
 const emit = defineEmits<{ edit: [product: Product] }>()
 
 const copy = inventoryCopy.recipes
+const SHOWN = 3
+
+const columns: TableColumn[] = [
+  { key: 'name', label: copy.cols.dish },
+  { key: 'items', label: copy.cols.items, hideOnMobile: true },
+  { key: 'price', label: copy.cols.price, align: 'right', hideOnMobile: true },
+  { key: 'state', label: copy.cols.state },
+  { key: 'action', label: '', align: 'right' },
+]
+
+const rows = computed(() =>
+  props.products.map((p) => {
+    const items = props.recipes.get(p._id)?.items ?? []
+    return {
+      id: p._id,
+      product: p,
+      name: p.name,
+      category: p.category || '—',
+      price: formatCents(p.priceCents),
+      has: p.hasRecipe,
+      chips: items
+        .slice(0, SHOWN)
+        .map((i) => ({
+          key: i.ingredient._id,
+          name: i.ingredient.name,
+          qty: formatQty(i.quantity, i.ingredient.unit),
+        })),
+      more: Math.max(items.length - SHOWN, 0),
+    }
+  }),
+)
 </script>
 
 <template>
-  <ul class="dishes">
-    <li v-for="p in products" :key="p._id">
+  <DataTable :columns="columns" :rows="rows" :caption="copy.title">
+    <template #cell-name="{ row }">
+      <span class="dish">
+        <strong>{{ row.name }}</strong>
+        <small
+          >{{ row.category }}<span class="dish__mprice num"> · {{ row.price }}</span></small
+        >
+      </span>
+    </template>
+    <template #cell-items="{ row }">
+      <span v-if="row.chips.length" class="chips">
+        <span v-for="c in row.chips" :key="c.key" class="chips__item">
+          {{ c.name }} <b class="num">{{ c.qty }}</b>
+        </span>
+        <span v-if="row.more" class="chips__more num">+{{ row.more }}</span>
+      </span>
+      <span v-else class="muted">—</span>
+    </template>
+    <template #cell-price="{ row }">
+      <strong class="num">{{ row.price }}</strong>
+    </template>
+    <template #cell-state="{ row }">
+      <AppBadge :tone="row.has ? 'success' : 'warning'" dot>
+        {{ row.has ? copy.withRecipe : copy.withoutRecipe }}
+      </AppBadge>
+    </template>
+    <template #cell-action="{ row }">
       <button
         type="button"
-        class="dish"
-        :class="{ 'dish--missing': !p.hasRecipe }"
-        @click="emit('edit', p)"
+        class="edit"
+        :aria-label="`${copy.edit}: ${row.name}`"
+        @click="emit('edit', row.product)"
       >
-        <span class="dish__head">
-          <span class="dish__name">
-            {{ p.name }}
-            <small>{{ p.category }}</small>
-          </span>
-          <span class="dish__price num">{{ formatCents(p.priceCents) }}</span>
-        </span>
-        <span v-if="recipes.get(p._id)?.items.length" class="dish__items">
-          <span
-            v-for="item in recipes.get(p._id)!.items"
-            :key="item.ingredient._id"
-            class="dish__item"
-          >
-            {{ item.ingredient.name }}
-            <b class="num">{{ formatQty(item.quantity, item.ingredient.unit) }}</b>
-          </span>
-        </span>
-        <span v-else class="dish__missing">
-          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> {{ copy.noRecipe }}
-        </span>
+        <i :class="row.has ? 'fa-solid fa-pen' : 'fa-solid fa-plus'" aria-hidden="true"></i>
+        <span>{{ row.has ? copy.editShort : copy.addShort }}</span>
       </button>
-    </li>
-  </ul>
+    </template>
+  </DataTable>
 </template>
 
 <style scoped lang="scss">
-.dishes {
-  list-style: none;
-  @include flex-cards(300px, 0.6rem);
-}
-
 .dish {
-  @include card;
-  @include flex(column, stretch, flex-start, 0.6rem);
-  width: 100%;
-  height: 100%;
-  padding: 0.9rem 1rem;
-  text-align: left;
-  @include transition;
+  @include flex(column, flex-start, center);
+  line-height: 1.3;
+  white-space: normal;
 
-  &:hover {
-    border-color: $ink-muted;
-    box-shadow: $shadow-sm;
-  }
-
-  &--missing {
-    border-style: dashed;
-    border-color: rgba($warning, 0.8);
-  }
-
-  &__head {
-    @include flex(row, flex-start, space-between, 0.6rem);
-  }
-
-  &__name {
+  strong {
     font-weight: 600;
-    line-height: 1.3;
+  }
 
-    small {
-      display: block;
-      font-weight: 400;
-      font-size: $text-xs;
-      color: $ink-muted;
+  small {
+    font-size: 0.7rem;
+    color: $ink-muted;
+  }
+
+  // En el celular el precio va debajo del nombre: no hay columna para él.
+  &__mprice {
+    @include from('md') {
+      display: none;
     }
   }
+}
 
-  &__price {
-    font-size: $text-sm;
-    color: $ink-soft;
-  }
-
-  &__items {
-    @include flex(row, center, flex-start, 0.3rem);
-    flex-wrap: wrap;
-  }
+.chips {
+  @include flex(row, center, flex-start, 0.3rem);
+  flex-wrap: wrap;
+  max-width: 26rem;
+  white-space: normal;
 
   &__item {
-    font-size: $text-xs;
-    padding: 0.2rem 0.55rem;
+    padding: 0.15rem 0.55rem;
     border-radius: $radius-pill;
-    background: $sand;
+    background: $canvas;
+    font-size: 0.72rem;
     color: $ink-soft;
 
     b {
+      font-weight: 700;
       color: $ink;
-      font-weight: 600;
     }
   }
 
-  &__missing {
-    font-size: $text-xs;
-    font-weight: 600;
-    color: darken($warning, 18%);
+  &__more {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: $ink-muted;
+  }
+}
+
+.edit {
+  @include flex(row, center, center, 0.4rem);
+  min-height: 2.1rem;
+  padding: 0 0.75rem;
+  border-radius: $radius-pill;
+  border: 1px solid $line;
+  font-size: 0.76rem;
+  font-weight: 600;
+  @include transition;
+
+  &:hover {
+    border-color: $ink;
+    background: $ink;
+    color: $surface;
+  }
+
+  span {
+    @include until('md') {
+      display: none;
+    }
+  }
+
+  @include until('md') {
+    width: 2.1rem;
+    padding: 0;
   }
 }
 </style>
