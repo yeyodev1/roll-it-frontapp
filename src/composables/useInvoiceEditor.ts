@@ -51,6 +51,7 @@ export function useInvoiceEditor() {
   const { loadIngredients, byId } = useInventoryIngredients()
   const invoice = ref<Invoice | null>(null)
   const loading = ref(false)
+  const error = ref('')
   const busy = ref(false)
   const form = reactive({ supplier: '', invoiceNumber: '', date: '' })
   const lines = ref<LineDraft[]>([])
@@ -81,11 +82,13 @@ export function useInvoiceEditor() {
 
   async function load(id: string) {
     loading.value = true
+    error.value = ''
     try {
       const [data] = await Promise.all([invoiceService.getOne(id), loadIngredients()])
       fill(data)
     } catch (e) {
-      toast.error((e as ApiError).message)
+      error.value = (e as ApiError).message
+      toast.error(error.value)
     } finally {
       loading.value = false
     }
@@ -144,6 +147,7 @@ export function useInvoiceEditor() {
   return {
     invoice,
     loading,
+    error,
     busy,
     form,
     lines,
