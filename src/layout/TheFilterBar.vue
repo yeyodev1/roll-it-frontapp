@@ -96,11 +96,11 @@ const rangeText = computed(() =>
           @apply="filters.setRange"
         />
       </div>
-      <p v-if="showRange" class="filters__range">
+      <p v-if="showRange && filters.preset !== 'custom'" class="filters__range">
         <i class="fa-regular fa-calendar" aria-hidden="true"></i>
         {{ rangeText }}
       </p>
-      <p v-else class="filters__range">
+      <p v-else-if="!showRange" class="filters__range">
         <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
         {{ copy.financeMonthly }}
       </p>
