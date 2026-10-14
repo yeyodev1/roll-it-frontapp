@@ -4,22 +4,25 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import LoadError from '@/components/ui/LoadError.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import ChartCard from '@/components/ui/ChartCard.vue'
 import SkeletonList from '@/components/ui/skeleton/SkeletonList.vue'
 import BranchPicker from '@/components/inventory/BranchPicker.vue'
+import MovementLog from '@/components/inventory/MovementLog.vue'
 import { useInventoryBranch } from '@/composables/useInventoryBranch'
 import { useInventoryMovements } from '@/composables/useInventoryMovements'
 import { useInventoryIngredients } from '@/composables/useInventoryIngredients'
 import { inventoryCopy } from '@/config/inventoryCopy'
 import { site } from '@/config/site'
-import { formatDate, formatQty } from '@/utils/format'
-import type { Movement, MovementType } from '@/types'
+import { formatQty } from '@/utils/format'
+import type { MovementType } from '@/types'
 
 const copy = inventoryCopy.movements
 const { branch, isStaff, ensureBranches } = useInventoryBranch()
 const { items, total, pages, page, loading, error, filters, load } = useInventoryMovements()
 const { active: ingredients, loadIngredients } = useInventoryIngredients()
 
-const typeOptions = [
+// Los tipos van como pastillas: son pocos y se eligen de un toque.
+const types = [
   { value: '' as MovementType | '', label: copy.allTypes },
   ...(Object.entries(site.movementTypes) as [MovementType, string][]).map(([value, label]) => ({
     value,
@@ -35,12 +38,6 @@ const ingredientOptions = computed(() => [
     keywords: i.aliases.join(' '),
   })),
 ])
-const time = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digit' })
-
-function signed(m: Movement) {
-  const text = formatQty(Math.abs(m.quantity), m.ingredient.unit)
-  return m.quantity > 0 ? `+${text}` : m.quantity < 0 ? `−${text}` : text
-}
 
 onMounted(async () => {
   await Promise.all([ensureBranches(), loadIngredients()])
@@ -52,7 +49,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="page movements">
+  <div class="page">
     <PageHeader :title="copy.title" :help="copy.help">
       <template #actions>
         <RouterLink class="btn btn--ghost btn--sm" :to="{ name: 'Inventory' }">
@@ -62,134 +59,117 @@ onMounted(async () => {
       </template>
     </PageHeader>
 
-    <div class="filters">
-      <BranchPicker v-if="!isStaff" v-model="filters.branch" allow-all />
+    <div class="mv__filters">
+      <BranchPicker v-if="!isStaff" v-model="filters.branch" class="mv__pick" allow-all />
       <AppSelect
         v-model="filters.ingredient"
+        class="mv__pick"
         :options="ingredientOptions"
         :label="inventoryCopy.stock.columns.name"
+        icon="fa-solid fa-carrot"
         searchable
+        pill
       />
-      <AppSelect v-model="filters.type" :options="typeOptions" :label="inventoryCopy.adjust.type" />
     </div>
 
-    <SkeletonList v-if="loading" :rows="8" />
-    <LoadError v-else-if="error && !items.length" :message="error" @retry="load" />
-    <EmptyState
-      v-else-if="!items.length"
-      icon="fa-solid fa-clock-rotate-left"
-      :title="copy.empty"
-    />
-    <ul v-else class="log">
-      <li v-for="m in items" :key="m._id" class="log__row">
-        <span class="log__type" :class="`log__type--${m.type}`">{{
-          site.movementTypes[m.type]
-        }}</span>
-        <span class="log__main">
-          <strong>{{ m.ingredient.name }}</strong>
-          <small class="muted">
-            {{ formatDate(m.date) }} · {{ time.format(new Date(m.date)) }}
-            <template v-if="!isStaff"> · {{ m.branch.name }}</template>
-            <template v-if="m.createdBy"> · {{ copy.by }} {{ m.createdBy.name }}</template>
-          </small>
-          <small v-if="m.note" class="log__note">{{ m.note }}</small>
-        </span>
-        <span class="log__qty num" :class="m.quantity >= 0 ? 'log__qty--in' : 'log__qty--out'">
-          {{ signed(m) }}
-        </span>
-      </li>
-    </ul>
+    <ChartCard :title="copy.history" flush>
+      <template #action>
+        <span class="mv__total num">{{ copy.total(formatQty(total)) }}</span>
+      </template>
+      <div class="mv__types" role="group" :aria-label="inventoryCopy.adjust.type">
+        <button
+          v-for="t in types"
+          :key="t.value"
+          type="button"
+          class="mv__type"
+          :aria-pressed="filters.type === t.value"
+          @click="filters.type = t.value"
+        >
+          {{ t.label }}
+        </button>
+      </div>
 
-    <div v-if="pages > 1" class="pager">
-      <button class="btn btn--ghost btn--sm" :disabled="page <= 1" @click="page--">
-        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i> {{ copy.prev }}
-      </button>
-      <span class="muted num">{{ copy.page(page, pages) }} · {{ total }}</span>
-      <button class="btn btn--ghost btn--sm" :disabled="page >= pages" @click="page++">
-        {{ copy.next }} <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-      </button>
-    </div>
+      <SkeletonList v-if="loading" :rows="8" :card="false" avatar />
+      <LoadError v-else-if="error && !items.length" :message="error" @retry="load" />
+      <div v-else-if="!items.length" class="mv__empty">
+        <EmptyState icon="fa-solid fa-clock-rotate-left" :title="copy.empty" />
+      </div>
+      <MovementLog v-else :items="items" :show-branch="!isStaff" />
+
+      <template v-if="pages > 1" #footer>
+        <div class="mv__pager">
+          <button class="btn btn--ghost btn--sm" :disabled="page <= 1" @click="page--">
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i> {{ copy.prev }}
+          </button>
+          <span class="muted num">{{ copy.page(page, pages) }}</span>
+          <button class="btn btn--ghost btn--sm" :disabled="page >= pages" @click="page++">
+            {{ copy.next }} <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </template>
+    </ChartCard>
   </div>
 </template>
 
 <style scoped lang="scss">
-.filters {
-  @include flex-cards(190px, 0.5rem);
-}
+.mv {
+  &__filters {
+    @include flex(row, center, flex-start, $sp-2 $sp-3);
+    flex-wrap: wrap;
+  }
 
-.log {
-  list-style: none;
-  @include card;
+  &__pick {
+    flex: 1 1 100%;
 
-  &__row {
-    @include flex(row, center, flex-start, 0.8rem);
-    padding: 0.8rem 1rem;
-    border-bottom: 1px solid $line;
+    @include from('md') {
+      flex: 0 1 16rem;
+    }
+  }
 
-    &:last-child {
-      border-bottom: none;
+  &__total {
+    font-size: 0.78rem;
+    color: $ink-muted;
+  }
+
+  &__types {
+    @include flex(row, center, flex-start, 0.35rem);
+    padding: 0 $sp-4 $sp-3;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    @include from('md') {
+      padding-inline: $sp-6;
     }
   }
 
   &__type {
     flex: 0 0 auto;
-    width: 6.2rem;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: $ink-muted;
-
-    &--purchase {
-      color: darken($success, 10%);
-    }
-
-    &--sale {
-      color: $ink-soft;
-    }
-
-    &--waste {
-      color: $danger;
-    }
-
-    &--initial,
-    &--adjustment {
-      color: $info;
-    }
-  }
-
-  &__main {
-    @include flex(column, flex-start, flex-start, 0.1rem);
-    flex: 1;
-    min-width: 0;
-
-    small {
-      font-size: $text-xs;
-    }
-  }
-
-  &__note {
+    padding: 0.35rem 0.8rem;
+    border-radius: $radius-pill;
+    background: $canvas;
+    font-size: 0.76rem;
+    font-weight: 600;
     color: $ink-soft;
-    font-style: italic;
-  }
-
-  &__qty {
-    flex: 0 0 auto;
-    font-weight: 700;
     white-space: nowrap;
+    @include transition(background-color);
 
-    &--in {
-      color: darken($success, 10%);
+    &:hover {
+      color: $ink;
     }
 
-    &--out {
-      color: $danger;
+    &[aria-pressed='true'] {
+      background: $ink;
+      color: $surface;
     }
   }
-}
 
-.pager {
-  @include flex(row, center, space-between, 0.6rem);
-  font-size: $text-sm;
+  &__empty {
+    padding: 0 $sp-4 $sp-4;
+  }
+
+  &__pager {
+    @include flex(row, center, space-between, 0.6rem);
+    padding-bottom: $sp-4;
+  }
 }
 </style>
