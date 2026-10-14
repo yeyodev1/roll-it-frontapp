@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import InfoTip from '@/components/ui/InfoTip.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import SkeletonList from '@/components/ui/skeleton/SkeletonList.vue'
 import { inventoryCopy } from '@/config/inventoryCopy'
 
 // Marco común de cada pestaña: barra con "Agregar", lista y estados vacío/cargando.
-defineProps<{ loading: boolean; empty: boolean; addLabel?: string; help?: string }>()
-const emit = defineEmits<{ add: [] }>()
+defineProps<{
+  loading: boolean
+  empty: boolean
+  error?: string
+  addLabel?: string
+  help?: string
+}>()
+const emit = defineEmits<{ add: []; retry: [] }>()
 </script>
 
 <template>
@@ -18,7 +25,8 @@ const emit = defineEmits<{ add: [] }>()
         <i class="fa-solid fa-plus" aria-hidden="true"></i> {{ addLabel }}
       </button>
     </div>
-    <LoadingBlock v-if="loading && empty" :lines="5" />
+    <SkeletonList v-if="loading" :rows="6" />
+    <LoadError v-else-if="error && empty" :message="error" @retry="emit('retry')" />
     <EmptyState v-else-if="empty" icon="fa-solid fa-inbox" :title="inventoryCopy.settings.empty" />
     <ul v-else class="section__list">
       <slot />
