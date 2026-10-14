@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import DataTable, { type TableColumn } from '@/components/ui/DataTable.vue'
 import AppBadge, { type BadgeTone } from '@/components/ui/AppBadge.vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
 import { dashboardCopy } from '@/config/dashboardCopy'
 import type { Trend } from '@/composables/useWaiters'
+import type { WaiterMetric } from '@/types'
 
 export interface WaiterRow extends Record<string, unknown> {
   id: string
@@ -24,27 +26,37 @@ export interface WaiterRow extends Record<string, unknown> {
 }
 
 /**
- * Ranking de meseros: puesto, nivel, puntaje con barra y las tres métricas
- * contra el equipo (flecha). El porqué del puntaje va detrás del (i).
+ * Ranking de meseros: puesto, nivel, puntaje con barra y las métricas que trae
+ * la fuente contra el equipo (flecha). El porqué del puntaje va detrás del (i).
+ * Una métrica que la fuente no trae (ticket promedio en el cierre) no es columna.
  */
-defineProps<{ rows: WaiterRow[] }>()
+const props = defineProps<{ rows: WaiterRow[]; metrics: WaiterMetric[]; perTicketLabel: string }>()
 
 const copy = dashboardCopy.waiters
 const cols = copy.cols
-const columns: TableColumn[] = [
-  { key: 'name', label: cols.name },
-  { key: 'levelLabel', label: cols.level, hideOnMobile: true },
-  { key: 'score', label: cols.score, align: 'right' },
-  { key: 'avgTicket', label: cols.avgTicket, align: 'right', hideOnMobile: true },
-  { key: 'perDay', label: cols.perDay, align: 'right', hideOnMobile: true, hideOnNarrow: true },
-  {
-    key: 'perTicket',
-    label: cols.perTicket,
-    align: 'right',
-    hideOnMobile: true,
-    hideOnNarrow: true,
-  },
-]
+const METRIC_COLUMN: Record<WaiterMetric, string> = {
+  avgTicket: 'avgTicket',
+  ticketsPerDay: 'perDay',
+  itemsPerTicket: 'perTicket',
+}
+const columns = computed<TableColumn[]>(() => {
+  const shown = new Set(props.metrics.map((m) => METRIC_COLUMN[m]))
+  const all: TableColumn[] = [
+    { key: 'name', label: cols.name },
+    { key: 'levelLabel', label: cols.level, hideOnMobile: true },
+    { key: 'score', label: cols.score, align: 'right' },
+    { key: 'avgTicket', label: cols.avgTicket, align: 'right', hideOnMobile: true },
+    { key: 'perDay', label: cols.perDay, align: 'right', hideOnMobile: true, hideOnNarrow: true },
+    {
+      key: 'perTicket',
+      label: props.perTicketLabel,
+      align: 'right',
+      hideOnMobile: true,
+      hideOnNarrow: true,
+    },
+  ]
+  return all.filter((c) => !Object.values(METRIC_COLUMN).includes(c.key) || shown.has(c.key))
+})
 const TREND = {
   up: 'fa-solid fa-caret-up',
   down: 'fa-solid fa-caret-down',
