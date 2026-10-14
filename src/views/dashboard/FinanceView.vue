@@ -2,8 +2,11 @@
 import { computed } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import KpiCard from '@/components/ui/KpiCard.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import RefreshStamp from '@/components/ui/RefreshStamp.vue'
+import DataUntilNotice from '@/components/ui/DataUntilNotice.vue'
+import SkeletonKpi from '@/components/ui/skeleton/SkeletonKpi.vue'
+import SkeletonChart from '@/components/ui/skeleton/SkeletonChart.vue'
 import LineChart from '@/components/charts/LineChart.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
@@ -15,7 +18,7 @@ import { compactCents, monthYearLabel } from '@/utils/chartFormat'
 
 const copy = dashboardCopy.finance
 const filters = useFiltersStore()
-const { data, loading, error, reload } = useDashboardData(
+const { data, loading, error, reload, updatedAt, refreshing } = useDashboardData(
   dashboardService.finance.bind(dashboardService),
 )
 
@@ -28,17 +31,19 @@ const progress = computed(() => {
 const kpis = computed(() => {
   const m = month.value
   if (!m) return []
+  // Mes sin ventas (datos importados hasta el mes anterior): "—" en vez de un $0,00 que asusta.
+  const empty = !m.salesCents
   return [
     {
       label: copy.monthSold,
-      value: formatCents(m.salesCents),
-      help: site.help.sales,
+      value: empty ? '—' : formatCents(m.salesCents),
+      help: empty ? copy.noMonthData : site.help.sales,
       icon: 'fa-solid fa-cash-register',
     },
     {
       label: copy.projection,
-      value: formatCents(m.projectedCents),
-      delta: m.vsLastYear,
+      value: empty ? '—' : formatCents(m.projectedCents),
+      delta: empty ? null : m.vsLastYear,
       help: `${site.help.projection} ${site.help.vsLastYear}`,
       icon: 'fa-solid fa-chart-line',
     },
@@ -65,7 +70,10 @@ const ytd = computed(() => {
 
 // Los 24 meses se parten en dos años alineados mes a mes: este año contra el anterior.
 const trend = computed(() => {
-  const monthly = data.value?.monthly ?? []
+  // Mes en curso sin ventas (datos importados hasta el mes anterior): no se dibuja como
+  // una caída a $0, se corta la línea en el último mes con datos.
+  const all = data.value?.monthly ?? []
+  const monthly = all.length && !month.value?.salesCents ? all.slice(0, -1) : all
   const current = monthly.slice(-12)
   const prev = monthly.slice(0, Math.max(monthly.length - 12, 0))
   const pad = current.length - prev.length
@@ -81,23 +89,27 @@ const trend = computed(() => {
 
 <template>
   <div class="page">
-    <PageHeader :title="copy.title" :subtitle="filters.branchName" />
+    <PageHeader :title="copy.title" :subtitle="filters.branchName">
+      <template #actions>
+        <RefreshStamp :at="updatedAt" :refreshing="refreshing" />
+      </template>
+    </PageHeader>
 
-    <LoadingBlock v-if="loading && !data" height="22rem" />
+    <DataUntilNotice banner />
 
-    <EmptyState
-      v-else-if="error && !data"
-      icon="fa-solid fa-plug-circle-exclamation"
-      :title="dashboardCopy.states.loadError"
-      :text="error"
-    >
-      <button class="btn btn--dark btn--sm" @click="reload">
-        {{ dashboardCopy.states.retry }}
-      </button>
-    </EmptyState>
+    <template v-if="loading">
+      <SkeletonKpi class="fin__kpis" :count="3" />
+      <span class="sk sk--pill fin__progress-sk" aria-hidden="true"></span>
+      <div class="fin__row">
+        <SkeletonChart class="fin__chart" :height="220" legend />
+        <SkeletonKpi class="fin__ytd" :count="1" />
+      </div>
+    </template>
+
+    <LoadError v-else-if="error && !data" :message="error" @retry="reload" />
 
     <template v-else-if="data && month">
-      <section class="fin__kpis" :class="{ 'is-loading': loading }">
+      <section class="fin__kpis">
         <KpiCard v-for="k in kpis" :key="k.label" v-bind="k" />
       </section>
 
@@ -152,7 +164,6 @@ const trend = computed(() => {
 .fin {
   &__kpis {
     @include flex-cards(150px, 0.75rem);
-    @include transition(opacity);
 
     > :first-child {
       flex-basis: 100%;
@@ -161,10 +172,10 @@ const trend = computed(() => {
         flex-basis: 200px;
       }
     }
+  }
 
-    &.is-loading {
-      opacity: 0.55;
-    }
+  &__progress-sk {
+    height: 1.2rem;
   }
 
   &__progress {
