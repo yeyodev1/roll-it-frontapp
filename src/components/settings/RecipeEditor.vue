@@ -27,6 +27,11 @@ async function doRemove() {
   >
     <p v-if="loading" class="muted"><i class="fa-solid fa-spinner fa-spin"></i></p>
     <template v-else>
+      <p class="items__title">
+        <span>{{ copy.perPortion }}</span>
+        <small class="num">{{ copy.itemsCount(items.length) }}</small>
+      </p>
+      <p v-if="!items.length" class="items__empty">{{ copy.emptyItems }}</p>
       <ul class="items">
         <li v-for="item in items" :key="item.key" class="items__row">
           <div class="items__picker">
@@ -94,29 +99,63 @@ async function doRemove() {
   list-style: none;
   @include flex(column, stretch, flex-start, 0.5rem);
 
+  &__title {
+    @include flex(row, center, space-between, 0.5rem);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: $ink;
+
+    small {
+      font-weight: 500;
+      color: $ink-muted;
+    }
+  }
+
+  &__empty {
+    padding: $sp-4;
+    border: 1px dashed $line;
+    border-radius: $radius-ctl;
+    font-size: 0.82rem;
+    color: $ink-muted;
+    text-align: center;
+  }
+
   &__row {
-    @include flex(row, center, flex-start, 0.4rem);
+    @include flex(row, center, flex-start, 0.5rem);
     flex-wrap: wrap;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px dashed $line;
+    padding: 0.6rem;
+    border-radius: $radius-ctl;
+    background: $canvas;
   }
 
   &__picker {
     flex: 1 1 100%;
+    min-width: 0;
 
     @include from('sm') {
-      flex-basis: 50%;
+      flex: 1 1 0;
     }
   }
 
   &__qty {
     @include flex(row, center, flex-start, 0.35rem);
-    flex: 1 1 8rem;
+    flex: 1 1 auto;
+
+    @include from('sm') {
+      flex: 0 0 auto;
+    }
+
+    input {
+      width: 6rem;
+      text-align: right;
+      font-weight: 700;
+      @include tabular;
+    }
 
     span {
-      font-size: $text-sm;
+      font-size: 0.78rem;
       color: $ink-muted;
-      min-width: 2.6rem;
+      min-width: 3rem;
     }
   }
 }
