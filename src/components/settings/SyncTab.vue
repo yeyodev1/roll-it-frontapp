@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import InfoTip from '@/components/ui/InfoTip.vue'
+import ChartCard from '@/components/ui/ChartCard.vue'
+import AppBadge from '@/components/ui/AppBadge.vue'
 import LoadError from '@/components/ui/LoadError.vue'
 import SkeletonCards from '@/components/ui/skeleton/SkeletonCards.vue'
+import SalesReportUpload from '@/components/sync/SalesReportUpload.vue'
 import { useSettingsSync } from '@/composables/useSettingsSync'
 import { inventoryCopy } from '@/config/inventoryCopy'
+import { dashboardCopy } from '@/config/dashboardCopy'
 import { site } from '@/config/site'
 
 const copy = inventoryCopy.settings.sync
+const upload = dashboardCopy.salesUpload
 const { items, loading, error, load } = useSettingsSync()
 
 const stamp = new Intl.DateTimeFormat('es-EC', {
@@ -27,36 +31,41 @@ onMounted(load)
 
 <template>
   <section class="sync">
+    <ChartCard :title="upload.title" :subtitle="upload.subtitle" :help="site.help.salesUpload">
+      <SalesReportUpload @done="load" />
+    </ChartCard>
+
     <div class="sync__bar">
-      <InfoTip :text="site.help.sync" />
+      <h2 class="sync__title">{{ copy.status }}</h2>
       <button class="btn btn--ghost btn--sm" :disabled="loading" @click="load">
         <i class="fa-solid fa-rotate" :class="{ 'fa-spin': loading }" aria-hidden="true"></i>
         {{ copy.refresh }}
       </button>
     </div>
+
     <SkeletonCards
       v-if="loading && !items.length"
       :count="3"
-      basis="260px"
+      basis="240px"
       :lines="0"
       min-height="7.6rem"
     />
     <LoadError v-else-if="error && !items.length" :message="error" @retry="load" />
     <ul v-else class="sync__list">
-      <li
-        v-for="s in items"
-        :key="s.branch._id"
-        class="card status"
-        :class="{ 'status--stale': stale(s.lastSyncAt) }"
-      >
-        <span class="status__name">
-          <span class="status__dot" aria-hidden="true"></span>
-          {{ s.branch.name }}
-        </span>
-        <dl>
+      <li v-for="s in items" :key="s.branch._id" class="status">
+        <header class="status__head">
+          <span class="status__icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span>
+          <strong class="status__name">{{ s.branch.name }}</strong>
+          <AppBadge :tone="stale(s.lastSyncAt) ? 'warning' : 'success'" dot>
+            {{ stale(s.lastSyncAt) ? copy.behind : copy.live }}
+          </AppBadge>
+        </header>
+        <dl class="status__data">
           <div>
             <dt>{{ copy.lastSync }}</dt>
-            <dd>{{ s.lastSyncAt ? stamp.format(new Date(s.lastSyncAt)) : copy.never }}</dd>
+            <dd class="num">
+              {{ s.lastSyncAt ? stamp.format(new Date(s.lastSyncAt)) : copy.never }}
+            </dd>
           </div>
           <div>
             <dt>{{ copy.today }}</dt>
@@ -70,50 +79,70 @@ onMounted(load)
 
 <style scoped lang="scss">
 .sync {
-  @include flex(column, stretch, flex-start, 0.8rem);
+  @include flex(column, stretch, flex-start, $sp-4);
 
   &__bar {
     @include flex(row, center, space-between, 0.5rem);
+    margin-top: $sp-2;
+  }
+
+  &__title {
+    font-family: $font-principal;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: $ink;
   }
 
   &__list {
     list-style: none;
-    @include flex-cards(260px, 0.7rem);
+    @include flex-cards(240px, $sp-3);
+
+    @include from('md') {
+      gap: $sp-4;
+    }
   }
 }
 
 .status {
-  @include flex(column, stretch, flex-start, 0.7rem);
+  @include card;
+  @include flex(column, stretch, flex-start, $sp-4);
+  padding: $sp-4 $sp-5;
+
+  &__head {
+    @include flex(row, center, flex-start, $sp-3);
+  }
+
+  &__icon {
+    @include flex(row, center, center);
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: $radius-ctl;
+    background: $accent-soft;
+    color: $accent-deep;
+    font-size: 0.85rem;
+  }
 
   &__name {
-    @include flex(row, center, flex-start, 0.5rem);
-    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    font-size: 0.92rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  &__dot {
-    width: 0.6rem;
-    height: 0.6rem;
-    border-radius: 50%;
-    background: $success;
-    box-shadow: 0 0 0 4px $success-bg;
-  }
+  &__data {
+    @include flex(row, flex-start, flex-start, $sp-6);
 
-  &--stale &__dot {
-    background: $warning;
-    box-shadow: 0 0 0 4px $warning-bg;
-  }
+    dt {
+      @include card-label;
+      font-size: 0.72rem;
+    }
 
-  dl {
-    @include flex(row, flex-start, flex-start, 1.5rem);
-  }
-
-  dt {
-    font-size: $text-xs;
-    color: $ink-muted;
-  }
-
-  dd {
-    @include display($text-lg, 500);
+    dd {
+      @include figure(1.15rem);
+    }
   }
 }
 </style>
