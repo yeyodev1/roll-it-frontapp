@@ -59,6 +59,14 @@ export function useWaiters() {
   function jumpToClosings() {
     if (closings.value) filters.setRange(closings.value.from, closings.value.to)
   }
+  // Al entrar sin datos en el rango elegido se salta solo a los cierres, una vez:
+  // si el dueño después cambia de fechas, se respeta su elección.
+  let autoJumped = false
+  watch(closings, (c) => {
+    if (!c || autoJumped) return
+    autoJumped = true
+    jumpToClosings()
+  })
 
   // El puesto se fija por puntaje antes de filtrar: no cambia al filtrar.
   const ranked = computed(() =>
