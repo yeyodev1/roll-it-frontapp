@@ -141,6 +141,9 @@ export interface Invoice {
   totalCents: number
   extractedBy: 'ai' | 'manual'
   aiError: string
+  // 'closing': copiada de la caja chica del cierre de mes, sin foto.
+  source: 'photo' | 'closing'
+  note: string
   createdAt: string
   confirmedAt: string | null
 }
@@ -187,20 +190,28 @@ export interface OperationsResponse {
 export interface WaiterStats {
   waiter: Ref
   branch: Ref
-  salesCents: number
+  // null cuando la fuente es el cierre de mes: no trae venta en $ por mesera.
+  salesCents: number | null
+  // Tickets de SmartMenu, o mesas atendidas si la fuente es el cierre.
   tickets: number
-  avgTicketCents: number
+  avgTicketCents: number | null
   itemsPerTicket: number
   ticketsPerDay: number
-  share: number
+  share: number | null
   daysWorked: number
   score: number
   level: 'top' | 'ok' | 'attention'
   reasons: string[]
 }
 
+export type WaiterMetric = 'avgTicket' | 'ticketsPerDay' | 'itemsPerTicket'
+export type WaiterSource = 'tickets' | 'closings' | 'none'
+
 export interface WaitersResponse {
-  teamAvg: { avgTicketCents: number; ticketsPerDay: number; itemsPerTicket: number }
+  source: WaiterSource
+  metrics: WaiterMetric[]
+  closingsRange: { from: string; to: string } | null
+  teamAvg: { avgTicketCents: number | null; ticketsPerDay: number; itemsPerTicket: number }
   waiters: WaiterStats[]
 }
 
