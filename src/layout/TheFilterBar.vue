@@ -51,7 +51,7 @@ function pick(preset: RangePreset) {
         pill
       />
 
-      <div class="filters__chips" role="group" :aria-label="copy.range">
+      <div class="filters__seg" role="group" :aria-label="copy.range">
         <button
           v-for="r in site.ranges"
           :key="r.value"
@@ -86,36 +86,39 @@ function pick(preset: RangePreset) {
 
 <style scoped lang="scss">
 .filters {
-  @include flex(column, stretch, flex-start, 0.65rem);
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid $line;
-  background: $paper;
+  padding: $sp-3 $sp-4 0;
 
   @include from('lg') {
-    padding: 0.85rem 2rem;
+    padding: $sp-5 $sp-8 0;
   }
 
   &__row {
-    @include flex(row, center, flex-start, 0.5rem 0.75rem);
+    @include flex(row, center, flex-start, $sp-2 $sp-3);
     flex-wrap: wrap;
+    max-width: calc(1280px - 4rem);
   }
 
   &__branch {
     flex: 1 1 100%;
 
     @include from('md') {
-      flex: 0 0 14rem;
+      flex: 0 0 13.5rem;
     }
   }
 
-  // En el celular los chips se deslizan de lado en vez de partir en dos filas.
-  &__chips {
-    @include flex(row, center, flex-start, 0.4rem);
+  // Control segmentado: los rangos van juntos en una sola pastilla blanca.
+  // En el celular se desliza de lado en vez de partir en dos filas.
+  &__seg {
+    @include flex(row, center, space-between, 0.1rem);
     flex: 1 1 100%;
+    max-width: 100%;
+    padding: 0.25rem;
+    border: 1px solid rgba($line, 0.6);
+    border-radius: $radius-pill;
+    background: $surface;
+    box-shadow: $shadow-card;
     overflow-x: auto;
     scrollbar-width: none;
-    margin-inline: -1rem;
-    padding-inline: 1rem;
 
     &::-webkit-scrollbar {
       display: none;
@@ -123,41 +126,69 @@ function pick(preset: RangePreset) {
 
     @include from('md') {
       flex: 0 1 auto;
-      margin-inline: 0;
-      padding-inline: 0;
+    }
+
+    .chip,
+    :deep(.chip) {
+      min-height: 2.15rem;
+      border-color: transparent;
+      background: transparent;
+      flex: 1 0 auto;
+      justify-content: center;
+      padding-inline: 0.6rem;
+      font-weight: 600;
+      font-size: 0.78rem;
+
+      @include from('md') {
+        padding-inline: 0.9rem;
+      }
+
+      &:hover {
+        background: $canvas;
+      }
+
+      &[aria-pressed='true'] {
+        background: $ink;
+        color: $surface;
+        box-shadow: 0 2px 6px rgba($ink, 0.18);
+      }
     }
   }
 
-  &__until {
-    flex: 1 1 100%;
-
+  &__until,
+  &__sync {
     @include from('md') {
-      flex: 0 1 auto;
       margin-left: auto;
     }
   }
 
   &__sync {
     @include flex(row, center, flex-start, 0.45rem);
-    font-size: 0.75rem;
-    color: $ink-muted;
+    min-height: 2rem;
+    padding: 0 0.8rem;
+    border-radius: $radius-pill;
+    background: rgba($success, 0.09);
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: darken($success, 16%);
 
-    @include from('md') {
-      margin-left: auto;
-    }
+    &--stale {
+      background: $warning-bg;
+      color: darken($warning, 22%);
 
-    &--stale .filters__dot {
-      background: $warning;
-      box-shadow: 0 0 0 3px $warning-bg;
+      .filters__dot {
+        background: $warning;
+        box-shadow: 0 0 0 3px rgba($warning, 0.2);
+      }
     }
   }
 
   &__dot {
-    width: 0.5rem;
-    height: 0.5rem;
+    width: 0.45rem;
+    height: 0.45rem;
     border-radius: 50%;
     background: $success;
-    box-shadow: 0 0 0 3px $success-bg;
+    box-shadow: 0 0 0 3px rgba($success, 0.2);
   }
 }
 </style>
