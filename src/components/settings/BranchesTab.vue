@@ -22,7 +22,7 @@ const res = useSettingsResource<Branch, { name: string; smartmenuUrl: string }>(
   update: (id, p) => branchService.update(id, p),
   validate: (f) => (f.name.trim() ? null : copy.branch.name),
 })
-const { items, loading, saving, sheetOpen, editingId, form } = res
+const { items, loading, error, saving, sheetOpen, editingId, form } = res
 
 // El selector de sucursal del panel lee del store: se mantiene al día.
 watch(items, (list) => filters.setBranches([...list]), { deep: true })
@@ -36,6 +36,8 @@ onMounted(res.load)
 <template>
   <SettingsSection
     :loading="loading"
+    :error="error"
+    @retry="res.load"
     :empty="!items.length"
     :add-label="copy.branch.new"
     @add="res.openNew"
