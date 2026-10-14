@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { toRef } from 'vue'
 import { useBodyScroll } from '@/composables/useBodyScroll'
+import { site } from '@/config/site'
 
 const props = defineProps<{
   open: boolean
@@ -9,6 +10,10 @@ const props = defineProps<{
   confirmLabel?: string
   cancelLabel?: string
   danger?: boolean
+  /** Ícono propio en vez del de pregunta/alerta. */
+  icon?: string
+  /** Caja ancha, alineada a la izquierda y sin botones: para un formulario o un uploader. */
+  panel?: boolean
 }>()
 
 const emit = defineEmits<{ confirm: []; cancel: [] }>()
@@ -20,18 +25,42 @@ useBodyScroll(toRef(props, 'open'))
   <Teleport to="body">
     <Transition name="modal">
       <div v-if="open" class="modal" @click.self="emit('cancel')">
-        <div class="modal__box" role="dialog" aria-modal="true" :aria-label="title">
+        <div
+          class="modal__box"
+          :class="{ 'modal__box--panel': panel }"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="title"
+        >
+          <button
+            v-if="panel"
+            type="button"
+            class="modal__close"
+            :aria-label="site.ui.close"
+            @click="emit('cancel')"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
           <span class="modal__icon" :class="{ 'modal__icon--danger': danger }">
-            <i :class="danger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-question'"></i>
+            <i
+              :class="
+                icon ||
+                (danger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-question')
+              "
+            ></i>
           </span>
           <h3 class="modal__title">{{ title }}</h3>
           <p v-if="message" class="modal__message">{{ message }}</p>
           <slot />
-          <div class="modal__actions">
+          <div v-if="!panel" class="modal__actions">
             <button class="btn btn--ghost" @click="emit('cancel')">
               {{ cancelLabel || 'Cancelar' }}
             </button>
-            <button class="btn" :class="danger ? 'btn--danger' : 'btn--primary'" @click="emit('confirm')">
+            <button
+              class="btn"
+              :class="danger ? 'btn--danger' : 'btn--primary'"
+              @click="emit('confirm')"
+            >
               {{ confirmLabel || 'Confirmar' }}
             </button>
           </div>
@@ -59,6 +88,50 @@ useBodyScroll(toRef(props, 'open'))
     width: 100%;
     padding: 2.2rem 2rem 1.8rem;
     box-shadow: $shadow-lg;
+
+    &--panel {
+      position: relative;
+      align-items: stretch;
+      text-align: left;
+      max-width: 34rem;
+      max-height: calc(100dvh - 2rem);
+      overflow-y: auto;
+      padding: $sp-6 $sp-4 $sp-4;
+
+      @include from('md') {
+        padding: $sp-6;
+      }
+
+      .modal__icon {
+        @include flex(row, center, center);
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: $radius-ctl;
+        background: $accent-soft;
+        font-size: 1rem;
+      }
+
+      .modal__title {
+        margin-bottom: $sp-2;
+      }
+    }
+  }
+
+  &__close {
+    position: absolute;
+    top: $sp-4;
+    right: $sp-4;
+    @include flex(row, center, center);
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    color: $ink-muted;
+    @include transition(background-color);
+
+    &:hover {
+      background: $canvas;
+      color: $ink;
+    }
   }
 
   &__icon {
