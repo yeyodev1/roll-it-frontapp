@@ -40,6 +40,8 @@ export const dashboardCopy = {
     updated: 'Actualizado',
     lastSale: 'Última venta',
     neverSynced: 'Sin ventas recibidas',
+    lastDay: 'Último día',
+    financeMonthly: 'Comparación mes a mes',
   },
 
   // Mientras SmartMenu no mande ventas en vivo, los datos llegan hasta el último día importado.
