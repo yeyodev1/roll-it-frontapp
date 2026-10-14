@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import SkeletonList from '@/components/ui/skeleton/SkeletonList.vue'
 import BranchPicker from '@/components/inventory/BranchPicker.vue'
 import { useInventoryBranch } from '@/composables/useInventoryBranch'
 import { useInventoryMovements } from '@/composables/useInventoryMovements'
@@ -14,10 +16,25 @@ import type { Movement, MovementType } from '@/types'
 
 const copy = inventoryCopy.movements
 const { branch, isStaff, ensureBranches } = useInventoryBranch()
-const { items, total, pages, page, loading, filters, load } = useInventoryMovements()
+const { items, total, pages, page, loading, error, filters, load } = useInventoryMovements()
 const { active: ingredients, loadIngredients } = useInventoryIngredients()
 
-const types = Object.entries(site.movementTypes) as [MovementType, string][]
+const typeOptions = [
+  { value: '' as MovementType | '', label: copy.allTypes },
+  ...(Object.entries(site.movementTypes) as [MovementType, string][]).map(([value, label]) => ({
+    value,
+    label,
+  })),
+]
+const ingredientOptions = computed(() => [
+  { value: '', label: copy.allIngredients },
+  ...ingredients.value.map((i) => ({
+    value: i._id,
+    label: i.name,
+    hint: i.unit,
+    keywords: i.aliases.join(' '),
+  })),
+])
 const time = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digit' })
 
 function signed(m: Movement) {
@@ -47,23 +64,23 @@ onMounted(async () => {
 
     <div class="filters">
       <BranchPicker v-if="!isStaff" v-model="filters.branch" allow-all />
-      <select v-model="filters.ingredient" :aria-label="inventoryCopy.stock.columns.name">
-        <option value="">{{ copy.allIngredients }}</option>
-        <option v-for="i in ingredients" :key="i._id" :value="i._id">{{ i.name }}</option>
-      </select>
-      <select v-model="filters.type" :aria-label="inventoryCopy.adjust.type">
-        <option value="">{{ copy.allTypes }}</option>
-        <option v-for="[value, label] in types" :key="value" :value="value">{{ label }}</option>
-      </select>
+      <AppSelect
+        v-model="filters.ingredient"
+        :options="ingredientOptions"
+        :label="inventoryCopy.stock.columns.name"
+        searchable
+      />
+      <AppSelect v-model="filters.type" :options="typeOptions" :label="inventoryCopy.adjust.type" />
     </div>
 
-    <LoadingBlock v-if="loading && !items.length" />
+    <SkeletonList v-if="loading" :rows="8" />
+    <LoadError v-else-if="error && !items.length" :message="error" @retry="load" />
     <EmptyState
       v-else-if="!items.length"
       icon="fa-solid fa-clock-rotate-left"
       :title="copy.empty"
     />
-    <ul v-else class="log" :class="{ 'log--loading': loading }">
+    <ul v-else class="log">
       <li v-for="m in items" :key="m._id" class="log__row">
         <span class="log__type" :class="`log__type--${m.type}`">{{
           site.movementTypes[m.type]
@@ -103,11 +120,6 @@ onMounted(async () => {
 .log {
   list-style: none;
   @include card;
-  @include transition(opacity);
-
-  &--loading {
-    opacity: 0.55;
-  }
 
   &__row {
     @include flex(row, center, flex-start, 0.8rem);
