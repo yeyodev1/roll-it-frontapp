@@ -2,7 +2,8 @@
 import { onMounted, watch } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import SkeletonList from '@/components/ui/skeleton/SkeletonList.vue'
 import BranchPicker from '@/components/inventory/BranchPicker.vue'
 import InvoiceCapture from '@/components/invoices/InvoiceCapture.vue'
 import InvoiceList from '@/components/invoices/InvoiceList.vue'
@@ -15,7 +16,7 @@ import type { InvoiceStatus } from '@/types'
 
 const copy = inventoryCopy.invoices
 const { branch, branchName, isStaff, ensureBranches } = useInventoryBranch()
-const { items, page, pages, status, loading, load } = useInvoiceList()
+const { items, page, pages, status, loading, error, load } = useInvoiceList()
 const { preview, uploading, upload } = useInvoiceUpload()
 
 const statuses = Object.entries(site.invoiceStatus) as [InvoiceStatus, string][]
@@ -76,7 +77,8 @@ onMounted(async () => {
       </button>
     </div>
 
-    <LoadingBlock v-if="loading && !items.length" />
+    <SkeletonList v-if="loading" :rows="6" basis="320px" thumb />
+    <LoadError v-else-if="error && !items.length" :message="error" @retry="load(branch)" />
     <EmptyState
       v-else-if="!items.length"
       icon="fa-solid fa-receipt"
