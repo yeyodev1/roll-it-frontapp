@@ -41,10 +41,7 @@ const columns: TableColumn[] = [
     <template #cell-sales="{ row }">
       <span class="money">
         <span class="money__track" aria-hidden="true">
-          <span
-            class="money__fill"
-            :style="{ width: `${Math.max(row.bar * 100, 3)}%` }"
-          ></span>
+          <span class="money__fill" :style="{ width: `${Math.max(row.bar * 100, 3)}%` }"></span>
         </span>
         <strong>{{ row.sales }}</strong>
       </span>
