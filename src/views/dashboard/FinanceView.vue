@@ -1,90 +1,25 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import KpiCard from '@/components/ui/KpiCard.vue'
+import ChartCard from '@/components/ui/ChartCard.vue'
 import LoadError from '@/components/ui/LoadError.vue'
 import RefreshStamp from '@/components/ui/RefreshStamp.vue'
-import DataUntilNotice from '@/components/ui/DataUntilNotice.vue'
 import SkeletonKpi from '@/components/ui/skeleton/SkeletonKpi.vue'
 import SkeletonChart from '@/components/ui/skeleton/SkeletonChart.vue'
-import LineChart from '@/components/charts/LineChart.vue'
+import SkeletonTable from '@/components/ui/skeleton/SkeletonTable.vue'
+import BarChart from '@/components/charts/BarChart.vue'
+import FinanceMonthTable from '@/components/dashboard/FinanceMonthTable.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
-import { dashboardService } from '@/services/dashboard.service'
-import { useDashboardData } from '@/composables/useDashboardData'
+import { useFinanceSummary } from '@/composables/useFinanceSummary'
 import { useFiltersStore } from '@/stores/filters'
-import { formatCents, variation } from '@/utils/format'
-import { compactCents, monthYearLabel } from '@/utils/chartFormat'
+import { formatCents } from '@/utils/format'
+import { compactCents } from '@/utils/chartFormat'
 
 const copy = dashboardCopy.finance
 const filters = useFiltersStore()
-const { data, loading, error, reload, updatedAt, refreshing } = useDashboardData(
-  dashboardService.finance.bind(dashboardService),
-)
-
-const month = computed(() => data.value?.currentMonth)
-const progress = computed(() => {
-  const m = month.value
-  return m && m.daysInMonth ? Math.min(m.daysElapsed / m.daysInMonth, 1) : 0
-})
-
-const kpis = computed(() => {
-  const m = month.value
-  if (!m) return []
-  // Mes sin ventas (datos importados hasta el mes anterior): "—" en vez de un $0,00 que asusta.
-  const empty = !m.salesCents
-  return [
-    {
-      label: copy.monthSold,
-      value: empty ? '—' : formatCents(m.salesCents),
-      help: empty ? copy.noMonthData : site.help.sales,
-      icon: 'fa-solid fa-cash-register',
-    },
-    {
-      label: copy.projection,
-      value: empty ? '—' : formatCents(m.projectedCents),
-      delta: empty ? null : m.vsLastYear,
-      help: `${site.help.projection} ${site.help.vsLastYear}`,
-      icon: 'fa-solid fa-chart-line',
-    },
-    {
-      label: copy.lastYear,
-      value: m.lastYearCents === null ? '—' : formatCents(m.lastYearCents),
-      help: site.help.vsLastYear,
-      icon: 'fa-solid fa-clock-rotate-left',
-    },
-  ]
-})
-
-const ytd = computed(() => {
-  const y = data.value?.yearToDate
-  if (!y) return null
-  return {
-    value: formatCents(y.salesCents),
-    delta:
-      y.lastYearSameRangeCents === null ? null : variation(y.salesCents, y.lastYearSameRangeCents),
-    lastYear:
-      y.lastYearSameRangeCents === null ? copy.noLastYear : formatCents(y.lastYearSameRangeCents),
-  }
-})
-
-// Los 24 meses se parten en dos años alineados mes a mes: este año contra el anterior.
-const trend = computed(() => {
-  // Mes en curso sin ventas (datos importados hasta el mes anterior): no se dibuja como
-  // una caída a $0, se corta la línea en el último mes con datos.
-  const all = data.value?.monthly ?? []
-  const monthly = all.length && !month.value?.salesCents ? all.slice(0, -1) : all
-  const current = monthly.slice(-12)
-  const prev = monthly.slice(0, Math.max(monthly.length - 12, 0))
-  const pad = current.length - prev.length
-  return {
-    labels: current.map((m) => monthYearLabel(m.month)),
-    series: current.map((m) => m.salesCents),
-    compare: prev.length
-      ? [...Array(Math.max(pad, 0)).fill(null), ...prev.map((m) => m.salesCents)]
-      : [],
-  }
-})
+const fin = useFinanceSummary()
+const { data, loading, error, updatedAt, refreshing, month, progress, kpis, bars, rows } = fin
 </script>
 
 <template>
@@ -95,67 +30,53 @@ const trend = computed(() => {
       </template>
     </PageHeader>
 
-    <DataUntilNotice banner />
-
     <template v-if="loading">
-      <SkeletonKpi class="fin__kpis" :count="3" />
-      <span class="sk sk--pill fin__progress-sk" aria-hidden="true"></span>
-      <div class="fin__row">
-        <SkeletonChart class="fin__chart" :height="220" legend />
-        <SkeletonKpi class="fin__ytd" :count="1" />
-      </div>
+      <SkeletonKpi :count="4" />
+      <SkeletonChart :height="260" legend />
+      <SkeletonTable :rows="5" :cols="4" />
     </template>
 
-    <LoadError v-else-if="error && !data" :message="error" @retry="reload" />
+    <LoadError v-else-if="error && !data" :message="error" @retry="fin.reload" />
 
     <template v-else-if="data && month">
       <section class="fin__kpis">
-        <KpiCard v-for="k in kpis" :key="k.label" v-bind="k" />
+        <KpiCard v-for="k in kpis" :key="k.label" v-bind="k">
+          <div
+            v-if="k.key === 'projection'"
+            class="fin__progress"
+            role="progressbar"
+            :aria-valuenow="month.daysElapsed"
+            :aria-valuemax="month.daysInMonth"
+            aria-valuemin="0"
+            :aria-label="copy.daysProgress(month.daysElapsed, month.daysInMonth)"
+          >
+            <span class="fin__progress-label num">
+              <span>{{ copy.daysProgress(month.daysElapsed, month.daysInMonth) }}</span>
+              <span>{{ Math.round(progress * 100) }}%</span>
+            </span>
+            <span class="fin__track"
+              ><span class="fin__bar" :style="{ transform: `scaleX(${progress})` }"></span
+            ></span>
+          </div>
+        </KpiCard>
       </section>
 
-      <div
-        class="fin__progress"
-        role="progressbar"
-        :aria-valuenow="month.daysElapsed"
-        :aria-valuemax="month.daysInMonth"
-        aria-valuemin="0"
-      >
-        <span class="fin__progress-label num">{{
-          copy.daysProgress(month.daysElapsed, month.daysInMonth)
-        }}</span>
-        <span class="fin__track"
-          ><span class="fin__bar" :style="{ width: `${progress * 100}%` }"></span
-        ></span>
-      </div>
+      <ChartCard :title="copy.trend" :help="site.help.monthly">
+        <BarChart
+          :labels="bars.labels"
+          :series="bars.series"
+          :compare="bars.compare"
+          :series-label="bars.current"
+          :compare-label="bars.prev"
+          :format="formatCents"
+          :axis-format="compactCents"
+          :height="280"
+        />
+      </ChartCard>
 
-      <div class="fin__row">
-        <section class="card fin__chart">
-          <h2 class="card__title">{{ copy.trend }}</h2>
-          <LineChart
-            :labels="trend.labels"
-            :series="trend.series"
-            :compare="trend.compare"
-            :series-label="copy.thisYear"
-            :compare-label="copy.prevYear"
-            :format="formatCents"
-            :axis-format="compactCents"
-            :height="220"
-          />
-        </section>
-
-        <div v-if="ytd" class="fin__ytd">
-          <KpiCard
-            :label="copy.ytd"
-            :value="ytd.value"
-            :delta="ytd.delta"
-            icon="fa-solid fa-calendar-check"
-          />
-          <p class="fin__ytd-last">
-            <span>{{ copy.ytdLastYear }}</span>
-            <strong class="num">{{ ytd.lastYear }}</strong>
-          </p>
-        </div>
-      </div>
+      <ChartCard v-if="rows.length" :title="copy.table" :help="site.help.monthTable" flush>
+        <FinanceMonthTable :rows="rows" />
+      </ChartCard>
     </template>
   </div>
 </template>
@@ -163,35 +84,26 @@ const trend = computed(() => {
 <style scoped lang="scss">
 .fin {
   &__kpis {
-    @include flex-cards(150px, 0.75rem);
+    @include flex-cards(150px, $sp-3);
 
-    > :first-child {
-      flex-basis: 100%;
-
-      @include from('md') {
-        flex-basis: 200px;
-      }
+    @include from('md') {
+      @include flex-cards(220px, $sp-4);
     }
   }
 
-  &__progress-sk {
-    height: 1.2rem;
-  }
-
   &__progress {
-    @include flex(row, center, flex-start, 0.75rem);
+    @include flex(column, stretch, flex-start, 0.4rem);
   }
 
   &__progress-label {
-    flex-shrink: 0;
-    font-size: 0.78rem;
+    @include flex(row, center, space-between, 0.5rem);
+    font-size: 0.72rem;
     font-weight: 600;
     color: $ink-soft;
   }
 
   &__track {
-    flex: 1;
-    height: 0.45rem;
+    height: 0.4rem;
     border-radius: $radius-pill;
     background: $sand;
     overflow: hidden;
@@ -201,40 +113,16 @@ const trend = computed(() => {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: $ink;
+    background: linear-gradient(90deg, rgba($chart-2, 0.6), $chart-2);
+    transform-origin: left;
+    transition: transform 0.8s $ease;
+    animation: fin-grow 0.9s $ease both;
   }
+}
 
-  &__row {
-    @include flex(column, stretch, flex-start, 1rem);
-
-    @include from('lg') {
-      flex-direction: row;
-      align-items: flex-start;
-    }
-  }
-
-  &__chart {
-    flex: 3 1 0;
-    min-width: 0;
-  }
-
-  &__ytd {
-    @include flex(column, stretch, flex-start, 0.6rem);
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  &__ytd-last {
-    @include flex(row, baseline, space-between, 0.5rem);
-    flex-wrap: wrap;
-    padding: 0 0.25rem;
-    font-size: 0.8rem;
-    color: $ink-muted;
-
-    strong {
-      color: $ink-soft;
-      font-weight: 600;
-    }
+@keyframes fin-grow {
+  from {
+    transform: scaleX(0);
   }
 }
 </style>
