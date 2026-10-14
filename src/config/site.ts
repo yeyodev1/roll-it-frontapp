@@ -42,6 +42,11 @@ export const site = {
     loading: 'Cargando…',
     retry: 'Reintentar',
     close: 'Cerrar',
+    // Lectores de pantalla: la flecha de color se lee como texto.
+    delta: {
+      up: (pct: string) => `subió ${pct}`,
+      down: (pct: string) => `bajó ${pct}`,
+    },
     select: {
       placeholder: 'Elegir',
       search: 'Buscar',
@@ -115,6 +120,11 @@ export const site = {
     itemsSold: 'Platos y bebidas vendidos.',
     vsPrevious: 'Comparado con el mismo número de días justo antes.',
     byBranch: 'Cuánto aporta cada sucursal a la venta total.',
+    ranking: 'Sucursales ordenadas por venta en el período elegido.',
+    daily: 'Venta de cada día del período. Pasa el dedo o el mouse para ver el monto.',
+    monthly: 'Venta de cada mes de este año (color) junto al mismo mes del año pasado (gris).',
+    monthTable: 'Cada mes de este año contra el mismo mes del año pasado.',
+    ytd: 'Venta desde el 1 de enero hasta hoy, contra el mismo tramo del año pasado.',
     inventoryAlerts: 'Insumos agotados o por debajo del mínimo en las sucursales.',
     topProducts: 'Lo que más dinero deja, no solo lo que más unidades vende.',
     heatmap:
