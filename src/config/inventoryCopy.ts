@@ -225,7 +225,10 @@ export const inventoryCopy = {
       branchRequired: 'El personal necesita una sucursal',
     },
     sync: {
-      lastSync: 'Última sincronización',
+      status: 'Estado por sucursal',
+      live: 'Al día',
+      behind: 'Atrasada',
+      lastSync: 'Última venta',
       today: 'Tickets hoy',
       never: 'Sin datos todavía',
       refresh: 'Actualizar',
