@@ -94,6 +94,33 @@ export const dashboardCopy = {
     at: (time: string) => `a las ${time}`,
   },
 
+  // Agente que corre en la PC de cada local y sube las ventas de SmartMenu.
+  agent: {
+    label: 'Agente',
+    states: {
+      live: 'En vivo',
+      offline: 'Sin conexión',
+      none: 'Sin instalar',
+    },
+    pill: {
+      live: 'Agente en vivo',
+      offline: 'Agente sin conexión',
+      none: 'Agente sin instalar',
+    },
+    allLive: 'Agentes en vivo',
+    someLive: (live: number, total: number) => `Agentes: ${live} de ${total} en vivo`,
+    lastSeen: 'Último aviso',
+    never: 'Nunca se conectó',
+    mode: 'Modo',
+    modes: {
+      carpeta: 'Vigila descargas',
+      auto: 'Automático',
+      descubrir: 'Descubrimiento',
+    } as Record<string, string>,
+    version: 'Versión',
+    lastError: 'Último error',
+  },
+
   timeAgo: {
     now: 'hace un momento',
     minutes: (n: number) => `hace ${n} min`,
