@@ -9,7 +9,8 @@ import { dayLabel } from '@/utils/chartFormat'
 /**
  * "Datos hasta el 30 sep · SmartMenu aún no está conectado en vivo".
  * Solo aparece cuando la última venta es de antes de hoy; `banner` es la
- * versión con caja para el cuerpo de una vista, sin él va en línea.
+ * versión con caja para el cuerpo de una vista, sin él va en línea. El slot
+ * agrega una acción al final de la pastilla.
  */
 const props = defineProps<{ banner?: boolean }>()
 
@@ -21,7 +22,12 @@ const tip = computed(() => (props.banner ? site.help.sync : `${copy.notLive}. ${
 </script>
 
 <template>
-  <p v-if="filters.isBehind" class="until" :class="{ 'until--banner': banner }" role="note">
+  <p
+    v-if="filters.isBehind"
+    class="until"
+    :class="{ 'until--banner': banner, 'until--action': $slots.default }"
+    role="note"
+  >
     <i class="fa-solid fa-calendar-day until__icon" aria-hidden="true"></i>
     <span class="until__text">
       <strong>{{ copy.label(day) }}</strong>
@@ -31,6 +37,8 @@ const tip = computed(() => (props.banner ? site.help.sync : `${copy.notLive}. ${
       </span>
     </span>
     <InfoTip :text="tip" />
+    <!-- Acción al final de la pastilla (p. ej. "Actualizar ventas" para el dueño). -->
+    <slot />
   </p>
 </template>
 
@@ -45,6 +53,10 @@ const tip = computed(() => (props.banner ? site.help.sync : `${copy.notLive}. ${
   color: darken($warning, 24%);
   min-width: 0;
 
+  &--action {
+    padding-right: 0.2rem;
+  }
+
   &__icon {
     flex: 0 0 auto;
     color: darken($warning, 8%);
@@ -55,6 +67,7 @@ const tip = computed(() => (props.banner ? site.help.sync : `${copy.notLive}. ${
 
     strong {
       font-weight: 600;
+      white-space: nowrap;
     }
   }
 
