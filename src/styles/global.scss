@@ -24,12 +24,18 @@
 :root {
   --font-display: #{$font-display};
   --font-body: #{$font-principal};
-  --bg: #{$paper};
+  --bg: #{$canvas};
   --surface: #{$surface};
   --text: #{$ink};
   --text-soft: #{$ink-soft};
   --accent: #{$accent};
   --border: #{$line};
+  // Colores de serie para los gráficos SVG (los lee el TS vía var()).
+  --chart-1: #{$chart-1};
+  --chart-2: #{$chart-2};
+  --chart-3: #{$chart-3};
+  --chart-4: #{$chart-4};
+  --chart-compare: #{$chart-compare};
 }
 
 html {
@@ -208,13 +214,13 @@ label {
 .page {
   @include flex(column, stretch, flex-start, 1.25rem);
   width: 100%;
-  max-width: 1200px;
+  max-width: 1280px;
   margin-inline: auto;
-  padding: 1.25rem 1rem 2rem;
+  padding: $sp-4 $sp-4 $sp-8;
 
   @include from('md') {
-    gap: 1.5rem;
-    padding: 1.75rem 2rem 3rem;
+    gap: $sp-6;
+    padding: $sp-6 $sp-8 3rem;
   }
 }
 
@@ -230,8 +236,9 @@ label {
   &__title {
     @include flex(row, center, flex-start, 0.4rem);
     font-family: $font-principal;
-    font-size: 0.92rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
     color: $ink;
     margin-bottom: 1rem;
   }
@@ -295,13 +302,14 @@ select {
     text-transform: uppercase;
     letter-spacing: 0.06em;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid $line;
+    border-bottom: 1px solid $line-soft;
+    background: rgba($canvas, 0.55);
     white-space: nowrap;
   }
 
   td {
     padding: 0.8rem 1rem;
-    border-bottom: 1px solid $line;
+    border-bottom: 1px solid $line-soft;
     vertical-align: middle;
   }
 
@@ -347,7 +355,7 @@ select {
 }
 
 .num {
-  font-variant-numeric: tabular-nums;
+  @include tabular;
 }
 
 .visually-hidden {
