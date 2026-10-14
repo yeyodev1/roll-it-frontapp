@@ -128,7 +128,8 @@ const { ranked, metrics, fromClosings, perTicketLabel, closings } = wt
       gap: $sp-4;
     }
 
-    @include from('lg') {
+    // La tabla tiene cinco columnas: el donut solo va al costado en pantallas muy anchas.
+    @media (min-width: 1600px) {
       flex-direction: row;
       align-items: flex-start;
     }
