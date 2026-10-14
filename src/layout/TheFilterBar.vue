@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import AppDateRange from '@/components/ui/AppDateRange.vue'
+import DataUntilNotice from '@/components/ui/DataUntilNotice.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
 import { useFiltersStore, type RangePreset } from '@/stores/filters'
@@ -21,47 +24,32 @@ const stale = computed(
   () => !syncAt.value || Date.now() - new Date(syncAt.value).getTime() > 2 * 3600_000,
 )
 
-const showCustom = ref(filters.preset === 'custom')
-const from = ref(filters.from)
-const to = ref(filters.to)
-const now = new Date()
-const today = [
-  now.getFullYear(),
-  String(now.getMonth() + 1).padStart(2, '0'),
-  String(now.getDate()).padStart(2, '0'),
-].join('-')
+const branchOptions = computed(() => [
+  { value: 'all', label: copy.allBranches },
+  ...filters.branches.map((b) => ({ value: b._id, label: b.name })),
+])
 
-watch(
-  () => [filters.from, filters.to],
-  ([f, t]) => {
-    from.value = f ?? from.value
-    to.value = t ?? to.value
-  },
-)
+const branch = computed({
+  get: () => filters.branch,
+  set: (value: string | undefined) => (filters.branch = value || 'all'),
+})
 
 function pick(preset: RangePreset) {
-  showCustom.value = false
   filters.setPreset(preset)
-}
-
-function applyCustom() {
-  if (!from.value || !to.value) return
-  const [a, b] = from.value <= to.value ? [from.value, to.value] : [to.value, from.value]
-  filters.setRange(a, b)
 }
 </script>
 
 <template>
   <div class="filters">
     <div class="filters__row">
-      <label class="filters__branch">
-        <span class="visually-hidden">{{ copy.branch }}</span>
-        <i class="fa-solid fa-store" aria-hidden="true"></i>
-        <select v-model="filters.branch">
-          <option value="all">{{ copy.allBranches }}</option>
-          <option v-for="b in filters.branches" :key="b._id" :value="b._id">{{ b.name }}</option>
-        </select>
-      </label>
+      <AppSelect
+        v-model="branch"
+        class="filters__branch"
+        :options="branchOptions"
+        :label="copy.branch"
+        icon="fa-solid fa-store"
+        pill
+      />
 
       <div class="filters__chips" role="group" :aria-label="copy.range">
         <button
@@ -69,40 +57,30 @@ function applyCustom() {
           :key="r.value"
           type="button"
           class="chip"
-          :aria-pressed="filters.preset === r.value && !showCustom"
+          :aria-pressed="filters.preset === r.value"
           @click="pick(r.value)"
         >
           {{ r.label }}
         </button>
-        <button
-          type="button"
-          class="chip"
-          :aria-pressed="showCustom || filters.preset === 'custom'"
-          :aria-expanded="showCustom"
-          @click="showCustom = !showCustom"
-        >
-          <i class="fa-regular fa-calendar" aria-hidden="true"></i>{{ copy.custom }}
-        </button>
+        <AppDateRange
+          chip
+          :from="filters.from"
+          :to="filters.to"
+          :max="filters.today"
+          :active="filters.preset === 'custom'"
+          :label="copy.range"
+          :placeholder="copy.custom"
+          @apply="filters.setRange"
+        />
       </div>
 
-      <p class="filters__sync" :class="{ 'filters__sync--stale': stale }">
+      <DataUntilNotice v-if="filters.isBehind" class="filters__until" />
+      <p v-else class="filters__sync" :class="{ 'filters__sync--stale': stale }">
         <span class="filters__dot" aria-hidden="true"></span>
-        <template v-if="syncAt">{{ copy.updated }} {{ ago }}</template>
+        <template v-if="syncAt">{{ copy.lastSale }} {{ ago }}</template>
         <template v-else>{{ copy.neverSynced }}</template>
       </p>
     </div>
-
-    <form v-if="showCustom" class="filters__custom" @submit.prevent="applyCustom">
-      <label class="field">
-        <span class="field__hint">{{ copy.from }}</span>
-        <input v-model="from" type="date" :max="today" required />
-      </label>
-      <label class="field">
-        <span class="field__hint">{{ copy.to }}</span>
-        <input v-model="to" type="date" :min="from" :max="today" required />
-      </label>
-      <button type="submit" class="btn btn--dark btn--sm">{{ copy.apply }}</button>
-    </form>
   </div>
 </template>
 
@@ -123,30 +101,10 @@ function applyCustom() {
   }
 
   &__branch {
-    position: relative;
-    margin: 0;
     flex: 1 1 100%;
 
     @include from('md') {
       flex: 0 0 14rem;
-    }
-
-    i {
-      position: absolute;
-      left: 0.85rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: $accent;
-      font-size: 0.85rem;
-      pointer-events: none;
-    }
-
-    select {
-      min-height: 2.5rem;
-      padding-block: 0.5rem;
-      padding-left: 2.3rem;
-      font-weight: 600;
-      border-radius: $radius-pill;
     }
   }
 
@@ -167,6 +125,15 @@ function applyCustom() {
       flex: 0 1 auto;
       margin-inline: 0;
       padding-inline: 0;
+    }
+  }
+
+  &__until {
+    flex: 1 1 100%;
+
+    @include from('md') {
+      flex: 0 1 auto;
+      margin-left: auto;
     }
   }
 
@@ -191,28 +158,6 @@ function applyCustom() {
     border-radius: 50%;
     background: $success;
     box-shadow: 0 0 0 3px $success-bg;
-  }
-
-  &__custom {
-    @include flex(row, flex-end, flex-start, 0.6rem);
-    flex-wrap: wrap;
-
-    .field {
-      flex: 1 1 8.5rem;
-
-      @include from('md') {
-        flex: 0 0 11rem;
-      }
-    }
-
-    input {
-      min-height: 2.5rem;
-      padding-block: 0.45rem;
-    }
-
-    .btn {
-      min-height: 2.5rem;
-    }
   }
 }
 </style>
