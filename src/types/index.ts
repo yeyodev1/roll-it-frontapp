@@ -152,7 +152,13 @@ export interface SummaryResponse {
   avgTicketCents: number
   itemsSold: number
   previous: { salesCents: number; tickets: number; avgTicketCents: number }
-  byBranch: { branch: Ref; salesCents: number; tickets: number; avgTicketCents: number; share: number }[]
+  byBranch: {
+    branch: Ref
+    salesCents: number
+    tickets: number
+    avgTicketCents: number
+    share: number
+  }[]
   daily: { date: string; salesCents: number; tickets: number }[]
   inventoryAlerts: { out: number; low: number }
   lastSyncAt: string | null
@@ -165,7 +171,13 @@ export interface Slot {
 }
 
 export interface OperationsResponse {
-  topProducts: { name: string; category: string; quantity: number; salesCents: number; share: number }[]
+  topProducts: {
+    name: string
+    category: string
+    quantity: number
+    salesCents: number
+    share: number
+  }[]
   byCategory: { category: string; quantity: number; salesCents: number; share: number }[]
   heatmap: { weekday: number; hour: number; salesCents: number; tickets: number }[]
   bestSlot: Slot | null
@@ -210,4 +222,24 @@ export interface SyncStatus {
   branch: Branch
   lastSyncAt: string | null
   salesToday: number
+}
+
+/** Respuesta de `POST /sync/upload`: lo que dejó cargado el reporte de SmartMenu. */
+export interface SalesReportResult {
+  branch: { _id: string; name: string; slug: string }
+  /** Primera y última venta del reporte (ISO). */
+  from: string | null
+  to: string | null
+  rows: number
+  tickets: number
+  received: number
+  /** Ya estaban cargados igual: no se tocaron. */
+  unchanged: number
+  created: number
+  updated: number
+  inventoryApplied: number
+  /** Platos creados sin receta. */
+  unmappedProducts: string[]
+  /** Tickets que faltan por el límite de tiempo del servidor: se sube el mismo archivo otra vez. */
+  pending: number
 }
