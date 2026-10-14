@@ -19,7 +19,7 @@ const copy = dashboardCopy.waiters
 const filters = useFiltersStore()
 const wt = useWaiters()
 const { data, loading, error, updatedAt, refreshing, view, tabs, team, rows, kpis, levels } = wt
-const { ranked } = wt
+const { ranked, metrics, fromClosings, perTicketLabel, closings } = wt
 </script>
 
 <template>
@@ -40,12 +40,26 @@ const { ranked } = wt
 
     <LoadError v-else-if="error && !data" :message="error" @retry="wt.reload" />
 
+    <!-- Hay cierres de mes cargados, pero en otras fechas: se ofrece ir a ellas. -->
+    <section v-else-if="data && !ranked.length && closings" class="wt__empty">
+      <EmptyState icon="fa-solid fa-calendar-days" :title="copy.noDataRange" :text="closings.text">
+        <button type="button" class="btn btn--primary btn--sm" @click="wt.jumpToClosings">
+          {{ copy.jumpToClosings }}
+        </button>
+      </EmptyState>
+    </section>
+
     <!-- El reporte de ventas no trae mesero: sin ese dato no hay ranking, no ceros. -->
     <section v-else-if="data && !ranked.length" class="wt__empty">
       <EmptyState icon="fa-solid fa-user-clock" :title="copy.noFeed" :text="copy.noFeedText" />
     </section>
 
     <template v-else-if="data && team">
+      <p v-if="fromClosings" class="wt__note">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        <span>{{ copy.closingsNote }}</span>
+      </p>
+
       <section class="wt__kpis">
         <KpiCard v-for="k in kpis" :key="k.label" v-bind="k" />
       </section>
@@ -67,7 +81,7 @@ const { ranked } = wt
               </button>
             </div>
           </template>
-          <WaiterTable :rows="rows" />
+          <WaiterTable :rows="rows" :metrics="metrics" :per-ticket-label="perTicketLabel" />
         </ChartCard>
 
         <ChartCard class="wt__side" :title="copy.byLevel" :help="site.help.waiterScore">
@@ -84,6 +98,21 @@ const { ranked } = wt
 
 <style scoped lang="scss">
 .wt {
+  &__note {
+    @include flex(row, flex-start, flex-start, 0.6rem);
+    padding: $sp-3 $sp-4;
+    border-radius: $radius-md;
+    background: $accent-soft;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: $ink-soft;
+
+    i {
+      margin-top: 0.2rem;
+      color: $accent;
+    }
+  }
+
   &__kpis {
     @include flex-cards(150px, $sp-3);
 
