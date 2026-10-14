@@ -1,105 +1,57 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import KpiCard from '@/components/ui/KpiCard.vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import RefreshStamp from '@/components/ui/RefreshStamp.vue'
+import DataUntilNotice from '@/components/ui/DataUntilNotice.vue'
+import SkeletonKpi from '@/components/ui/skeleton/SkeletonKpi.vue'
+import SkeletonChart from '@/components/ui/skeleton/SkeletonChart.vue'
+import SkeletonList from '@/components/ui/skeleton/SkeletonList.vue'
 import LineChart from '@/components/charts/LineChart.vue'
 import BarList from '@/components/charts/BarList.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
-import { dashboardService } from '@/services/dashboard.service'
-import { useDashboardData } from '@/composables/useDashboardData'
-import { useLastSync } from '@/composables/useLastSync'
+import { useCeoSummary } from '@/composables/useCeoSummary'
 import { useTimeAgo } from '@/composables/useTimeAgo'
 import { useFiltersStore } from '@/stores/filters'
-import { formatCents, formatPercent, formatQty, variation } from '@/utils/format'
-import { compactCents, dayLabel } from '@/utils/chartFormat'
+import { formatCents } from '@/utils/format'
+import { compactCents } from '@/utils/chartFormat'
 
 const copy = dashboardCopy.ceo
 const filters = useFiltersStore()
-const { data, loading, error, reload } = useDashboardData(
-  dashboardService.summary.bind(dashboardService),
-)
-const { report } = useLastSync()
-
-watch(data, (d) => d && report(d.lastSyncAt))
+const ceo = useCeoSummary()
+const { data, loading, error, updatedAt, refreshing } = ceo
+const { kpis, daily, branches, alerts, hasAlerts, isEmpty } = ceo
 const syncAgo = useTimeAgo(() => data.value?.lastSyncAt)
-
-const kpis = computed(() => {
-  const d = data.value
-  if (!d) return []
-  return [
-    {
-      label: copy.sales,
-      value: formatCents(d.salesCents),
-      delta: variation(d.salesCents, d.previous.salesCents),
-      help: `${site.help.sales} ${site.help.vsPrevious}`,
-      icon: 'fa-solid fa-sack-dollar',
-    },
-    {
-      label: copy.tickets,
-      value: formatQty(d.tickets),
-      delta: variation(d.tickets, d.previous.tickets),
-      help: site.help.tickets,
-      icon: 'fa-solid fa-receipt',
-    },
-    {
-      label: copy.avgTicket,
-      value: formatCents(d.avgTicketCents),
-      delta: variation(d.avgTicketCents, d.previous.avgTicketCents),
-      help: site.help.avgTicket,
-      icon: 'fa-solid fa-utensils',
-    },
-    {
-      label: copy.itemsSold,
-      value: formatQty(d.itemsSold),
-      delta: null,
-      help: site.help.itemsSold,
-      icon: 'fa-solid fa-bowl-food',
-    },
-  ]
-})
-
-const daily = computed(() => ({
-  labels: data.value?.daily.map((d) => dayLabel(d.date)) ?? [],
-  series: data.value?.daily.map((d) => d.salesCents) ?? [],
-}))
-
-const branches = computed(() =>
-  (data.value?.byBranch ?? []).map((b) => ({
-    label: b.branch.name,
-    value: b.salesCents,
-    display: formatCents(b.salesCents),
-    sub: formatPercent(b.share),
-  })),
-)
-
-const alerts = computed(() => data.value?.inventoryAlerts ?? { out: 0, low: 0 })
-const hasAlerts = computed(() => alerts.value.out + alerts.value.low > 0)
-const isEmpty = computed(() => data.value && !data.value.tickets)
 </script>
 
 <template>
   <div class="page">
-    <PageHeader :title="copy.title" :subtitle="filters.branchName" />
+    <PageHeader :title="copy.title" :subtitle="filters.branchName">
+      <template #actions>
+        <RefreshStamp :at="updatedAt" :refreshing="refreshing" />
+      </template>
+    </PageHeader>
 
-    <LoadingBlock v-if="loading && !data" height="22rem" />
+    <DataUntilNotice banner />
 
-    <EmptyState
-      v-else-if="error && !data"
-      icon="fa-solid fa-plug-circle-exclamation"
-      :title="dashboardCopy.states.loadError"
-      :text="error"
-    >
-      <button class="btn btn--dark btn--sm" @click="reload">
-        {{ dashboardCopy.states.retry }}
-      </button>
-    </EmptyState>
+    <template v-if="loading">
+      <SkeletonKpi :count="4" />
+      <div class="ceo__row">
+        <SkeletonChart class="ceo__chart" :height="200" />
+        <div class="ceo__side">
+          <SkeletonList :rows="2" :trailing="false" />
+          <SkeletonList v-if="filters.branch === 'all'" variant="bars" :rows="3" title />
+        </div>
+      </div>
+    </template>
+
+    <LoadError v-else-if="error && !data" :message="error" @retry="ceo.reload" />
 
     <template v-else-if="data">
-      <section class="ceo__kpis" :class="{ 'is-loading': loading }">
+      <section class="ceo__kpis">
         <KpiCard v-for="k in kpis" :key="k.label" v-bind="k" />
       </section>
 
@@ -173,14 +125,9 @@ const isEmpty = computed(() => data.value && !data.value.tickets)
 .ceo {
   &__kpis {
     @include flex-cards(150px, 0.75rem);
-    @include transition(opacity);
 
     @include from('md') {
       @include flex-cards(200px, 1rem);
-    }
-
-    &.is-loading {
-      opacity: 0.55;
     }
   }
 
