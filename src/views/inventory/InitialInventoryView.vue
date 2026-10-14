@@ -2,9 +2,12 @@
 import { computed, onMounted, watch } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ChartCard from '@/components/ui/ChartCard.vue'
 import LoadError from '@/components/ui/LoadError.vue'
 import { site } from '@/config/site'
 import BranchPicker from '@/components/inventory/BranchPicker.vue'
+import BranchChoice from '@/components/inventory/BranchChoice.vue'
+import SearchField from '@/components/ui/SearchField.vue'
 import { useInventoryBranch } from '@/composables/useInventoryBranch'
 import { useInventoryInitial } from '@/composables/useInventoryInitial'
 import { normalize } from '@/composables/useInventoryStock'
@@ -12,13 +15,18 @@ import { inventoryCopy } from '@/config/inventoryCopy'
 import { formatQty } from '@/utils/format'
 
 const copy = inventoryCopy.initial
-const { branch, branchName, isStaff, ensureBranches } = useInventoryBranch({ allowAll: false })
+const { branch, branches, branchName, isStaff, ensureBranches } = useInventoryBranch({
+  allowAll: false,
+})
 const { rows, loading, error, saving, search, changed, load, save } = useInventoryInitial()
 
 const visible = computed(() => {
   const term = normalize(search.value)
   return term ? rows.value.filter((r) => normalize(r.name).includes(term)) : rows.value
 })
+
+const isChanged = (r: { quantity: number | null; original: number }) =>
+  r.quantity !== null && Number(r.quantity) !== r.original
 
 watch(branch, (value) => load(value))
 onMounted(async () => {
@@ -35,13 +43,22 @@ onMounted(async () => {
           <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
           {{ inventoryCopy.stock.title }}
         </RouterLink>
+        <BranchPicker v-if="!isStaff && branch" v-model="branch" />
       </template>
     </PageHeader>
 
-    <BranchPicker v-if="!isStaff" v-model="branch" />
+    <!-- Sin sucursal elegida: se elige con un toque, sin abrir un selector. -->
+    <BranchChoice
+      v-if="!branch"
+      :branches="branches"
+      :title="copy.pickBranch"
+      @pick="branch = $event"
+    />
 
-    <template v-if="branch">
-      <input v-model="search" type="search" :placeholder="inventoryCopy.stock.search" />
+    <ChartCard v-else :title="copy.count" :subtitle="copy.countHint" flush>
+      <template #action>
+        <SearchField v-model="search" :placeholder="inventoryCopy.stock.search" />
+      </template>
 
       <!-- Skeleton con la forma de cada fila: nombre a la izquierda, casilla de cantidad a la derecha. -->
       <ul v-if="loading" class="count" role="status" aria-busy="true">
@@ -55,23 +72,24 @@ onMounted(async () => {
         <li class="visually-hidden">{{ site.ui.loading }}</li>
       </ul>
       <LoadError v-else-if="error" :message="error" @retry="load(branch)" />
-      <EmptyState
-        v-else-if="!visible.length"
-        icon="fa-solid fa-box-open"
-        :title="inventoryCopy.stock.empty"
-      />
+      <div v-else-if="!visible.length" class="initial__empty">
+        <EmptyState icon="fa-solid fa-box-open" :title="inventoryCopy.stock.empty" />
+      </div>
       <ul v-else class="count">
         <li
           v-for="row in visible"
           :key="row.id"
           class="count__row"
-          :class="{
-            'count__row--changed': row.quantity !== null && Number(row.quantity) !== row.original,
-          }"
+          :class="{ 'count__row--changed': isChanged(row) }"
         >
           <label class="count__name" :for="`qty-${row.id}`">
             {{ row.name }}
-            <small class="num">{{ formatQty(row.original, row.unit) }}</small>
+            <small class="num">
+              {{ copy.before }} {{ formatQty(row.original, row.unit) }}
+              <span v-if="isChanged(row)" class="count__diff">
+                → {{ formatQty(Number(row.quantity), row.unit) }}
+              </span>
+            </small>
           </label>
           <div class="count__input">
             <input
@@ -87,10 +105,11 @@ onMounted(async () => {
           </div>
         </li>
       </ul>
-    </template>
+    </ChartCard>
 
     <div v-if="branch && rows.length" class="bar">
-      <span class="bar__count">
+      <span class="bar__count" :class="{ 'bar__count--on': changed.length }">
+        <i class="fa-solid fa-pen" aria-hidden="true"></i>
         {{ changed.length ? copy.changed(changed.length) : copy.noChanges }}
       </span>
       <button class="btn btn--primary" :disabled="saving || !changed.length" @click="save(branch)">
@@ -107,21 +126,28 @@ onMounted(async () => {
 <style scoped lang="scss">
 .initial {
   padding-bottom: 7rem;
+
+  &__empty {
+    padding: 0 $sp-4 $sp-4;
+  }
 }
 
 .count {
   list-style: none;
-  @include flex(column, stretch, flex-start, 0.5rem);
 
   &__row {
-    @include card;
     @include flex(row, center, space-between, 0.8rem);
-    padding: 0.7rem 0.75rem 0.7rem 1rem;
-    @include transition(border-color);
+    padding: 0.65rem $sp-4;
+    border-top: 1px solid $line-soft;
+    @include transition(background-color);
+
+    @include from('md') {
+      padding-inline: $sp-6;
+    }
 
     &--changed {
-      border-color: $accent;
-      box-shadow: inset 4px 0 0 $accent;
+      background: rgba($accent-soft, 0.45);
+      box-shadow: inset 3px 0 0 $accent;
     }
   }
 
@@ -129,16 +155,21 @@ onMounted(async () => {
     margin: 0;
     flex: 1;
     min-width: 0;
-    font-size: 1rem;
+    font-size: 0.92rem;
     font-weight: 600;
     color: $ink;
 
     small {
       display: block;
-      font-size: $text-xs;
+      font-size: 0.72rem;
       font-weight: 400;
       color: $ink-muted;
     }
+  }
+
+  &__diff {
+    font-weight: 700;
+    color: $accent-deep;
   }
 
   &__sk-meta {
@@ -149,8 +180,8 @@ onMounted(async () => {
 
   &__sk-input {
     flex: 0 0 auto;
-    width: 11rem;
-    height: 3.1rem;
+    width: 10rem;
+    height: 2.75rem;
   }
 
   &__input {
@@ -158,16 +189,18 @@ onMounted(async () => {
     flex: 0 0 auto;
 
     input {
-      width: 7.5rem;
-      font-size: 1.35rem;
-      font-weight: 600;
+      width: 7rem;
+      font-size: 1.1rem;
+      font-weight: 700;
       text-align: right;
-      padding: 0.65rem 0.8rem;
+      padding: 0.55rem 0.8rem;
+      border-radius: $radius-ctl;
+      @include tabular;
     }
 
     span {
-      width: 3.2rem;
-      font-size: $text-sm;
+      width: 3rem;
+      font-size: 0.78rem;
       color: $ink-muted;
     }
   }
@@ -186,10 +219,21 @@ onMounted(async () => {
   backdrop-filter: blur(8px);
   border-top: 1px solid $line;
 
+  // En escritorio no tapa la barra lateral.
+  @include from('lg') {
+    left: 15rem;
+    padding-inline: $sp-8;
+  }
+
   &__count {
+    @include flex(row, center, flex-start, 0.45rem);
     font-size: $text-sm;
     font-weight: 600;
-    color: $ink-soft;
+    color: $ink-muted;
+
+    &--on {
+      color: $accent-deep;
+    }
   }
 
   .btn {
