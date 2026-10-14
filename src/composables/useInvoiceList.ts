@@ -10,9 +10,11 @@ export function useInvoiceList() {
   const pages = ref(1)
   const status = ref<InvoiceStatus | ''>('')
   const loading = ref(false)
+  const error = ref('')
 
   async function load(branch: string) {
     loading.value = true
+    error.value = ''
     try {
       const data = await invoiceService.list({
         branch: branch === 'all' ? '' : branch,
@@ -22,11 +24,12 @@ export function useInvoiceList() {
       items.value = data.items
       pages.value = Math.max(1, data.pages)
     } catch (e) {
-      toast.error((e as ApiError).message)
+      error.value = (e as ApiError).message
+      toast.error(error.value)
     } finally {
       loading.value = false
     }
   }
 
-  return { items, page, pages, status, loading, load }
+  return { items, page, pages, status, loading, error, load }
 }
