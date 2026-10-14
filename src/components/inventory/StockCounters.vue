@@ -1,16 +1,26 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { site } from '@/config/site'
+import { inventoryCopy } from '@/config/inventoryCopy'
+import { formatPercent } from '@/utils/format'
 import type { StockCounts } from '@/services/inventory.service'
 import type { StockStatus } from '@/types'
 
-defineProps<{ counts: StockCounts; active: StockStatus | '' }>()
+/**
+ * Cuatro tarjetas tipo KPI, una por estado, con su color. Tocar una filtra la
+ * lista por ese estado; tocarla de nuevo quita el filtro.
+ */
+const props = defineProps<{ counts: StockCounts; active: StockStatus | '' }>()
 const emit = defineEmits<{ toggle: [status: StockStatus] }>()
 
+const copy = inventoryCopy.stock
 const order: StockStatus[] = ['out', 'low', 'ok', 'over']
+const total = computed(() => order.reduce((a, k) => a + props.counts[k], 0) || 1)
+const share = (k: StockStatus) => props.counts[k] / total.value
 </script>
 
 <template>
-  <div class="counters" role="group">
+  <div class="counters" role="group" :aria-label="copy.byStatus">
     <button
       v-for="key in order"
       :key="key"
@@ -23,10 +33,18 @@ const order: StockStatus[] = ['out', 'low', 'ok', 'over']
       :aria-pressed="active === key"
       @click="emit('toggle', key)"
     >
+      <span class="counter__head">
+        <span class="counter__label">{{ site.stockStatus[key].label }}</span>
+        <span class="counter__icon" aria-hidden="true">
+          <i :class="site.stockStatus[key].icon"></i>
+        </span>
+      </span>
       <span class="counter__num">{{ counts[key] }}</span>
-      <span class="counter__label">
-        <i :class="site.stockStatus[key].icon" aria-hidden="true"></i>
-        {{ site.stockStatus[key].label }}
+      <span class="counter__meta">
+        <span class="counter__track" aria-hidden="true">
+          <span class="counter__fill" :style="{ width: `${share(key) * 100}%` }"></span>
+        </span>
+        <span class="counter__pct num">{{ formatPercent(share(key)) }}</span>
       </span>
     </button>
   </div>
@@ -34,69 +52,134 @@ const order: StockStatus[] = ['out', 'low', 'ok', 'over']
 
 <style scoped lang="scss">
 .counters {
-  @include flex-cards(130px, 0.6rem);
+  @include flex-cards(150px, $sp-3);
+
+  @include from('md') {
+    @include flex-cards(200px, $sp-4);
+  }
 }
 
 .counter {
+  --tone: #{$ink-muted};
+  --tone-bg: #{$sand};
   @include card;
-  @include flex(column, flex-start, flex-start, 0.15rem);
-  padding: 0.75rem 0.9rem 0.8rem;
+  @include flex(column, stretch, flex-start, 0.35rem);
+  position: relative;
+  padding: $sp-4;
   text-align: left;
-  border-left: 4px solid currentColor;
   @include transition;
+  @include focus-ring;
 
-  &__num {
-    @include display($display-sm, 500);
-    font-variant-numeric: tabular-nums;
-    color: $ink;
-  }
-
-  &__label {
-    @include flex(row, center, flex-start, 0.35rem);
-    font-size: $text-xs;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-
-    i {
-      font-size: 0.7rem;
-    }
+  @include from('md') {
+    padding: $sp-5 $sp-5 $sp-4;
   }
 
   &--out {
-    color: $danger;
+    --tone: #{$danger};
+    --tone-bg: #{$danger-bg};
   }
 
   &--low {
-    color: darken($warning, 12%);
+    --tone: #{darken($warning, 12%)};
+    --tone-bg: #{$warning-bg};
   }
 
   &--ok {
-    color: darken($success, 8%);
+    --tone: #{darken($success, 8%)};
+    --tone-bg: #{$success-bg};
   }
 
   &--over {
-    color: $info;
-  }
-
-  &--zero {
-    border-left-color: $line;
-
-    .counter__num {
-      color: $ink-muted;
-    }
+    --tone: #{$info};
+    --tone-bg: #{$info-bg};
   }
 
   &:hover {
-    box-shadow: $shadow-sm;
+    box-shadow: $shadow-hover;
+  }
+
+  &__head {
+    @include flex(row, flex-start, space-between, 0.5rem);
+  }
+
+  &__label {
+    @include card-label;
+    padding-top: 0.2rem;
+  }
+
+  &__icon {
+    @include flex(row, center, center);
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border-radius: $radius-ctl;
+    background: var(--tone-bg);
+    color: var(--tone);
+    font-size: 0.82rem;
+
+    @include from('md') {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+  }
+
+  &__num {
+    @include figure(clamp(1.6rem, 1.3rem + 1vw, 2rem));
+    color: var(--tone);
+  }
+
+  &__meta {
+    @include flex(row, center, flex-start, 0.6rem);
+    margin-top: 0.15rem;
+  }
+
+  &__track {
+    flex: 1;
+    height: 0.35rem;
+    border-radius: $radius-pill;
+    background: $sand;
+    overflow: hidden;
+  }
+
+  &__fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--tone);
+    transform-origin: left;
+    animation: counter-grow 0.7s $ease both;
+  }
+
+  &__pct {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: $ink-muted;
+  }
+
+  &--zero &__num {
+    color: $ink-muted;
   }
 
   &--active {
-    background: currentColor;
+    border-color: var(--tone);
+    box-shadow:
+      0 0 0 1px var(--tone),
+      $shadow-hover;
 
-    .counter__num,
-    .counter__label {
-      color: $surface;
+    &::after {
+      content: '';
+      position: absolute;
+      inset: auto $sp-4 -1px;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--tone);
     }
+  }
+}
+
+@keyframes counter-grow {
+  from {
+    transform: scaleX(0);
   }
 }
 </style>
