@@ -51,6 +51,7 @@ export const dashboardCopy = {
   // Subir a mano el reporte de ventas de SmartMenu (mientras no hay conexión en vivo).
   salesUpload: {
     action: 'Actualizar ventas',
+    actionShort: 'Actualizar',
     title: 'Actualizar ventas',
     subtitle: 'Sube el reporte de ventas detallado de SmartMenu',
     drop: 'Arrastra aquí el reporte',
