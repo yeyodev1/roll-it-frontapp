@@ -41,6 +41,17 @@ const emit = defineEmits<{ add: []; retry: [] }>()
   &__bar {
     @include flex(row, center, flex-start, 0.5rem);
     flex-wrap: wrap;
+
+    // Buscador de las pestañas: pastilla gris como en el resto del panel.
+    :deep(.search) {
+      flex: 1 1 14rem;
+      max-width: 22rem;
+      padding: 0.55rem 1rem;
+      border-radius: $radius-pill;
+      border-color: rgba($line, 0.6);
+      font-size: 0.86rem;
+      box-shadow: $shadow-sm;
+    }
   }
 
   &__add {
@@ -50,6 +61,7 @@ const emit = defineEmits<{ add: []; retry: [] }>()
   &__list {
     list-style: none;
     @include card;
+    overflow: hidden;
   }
 }
 </style>
