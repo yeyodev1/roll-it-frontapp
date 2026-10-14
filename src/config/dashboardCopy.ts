@@ -229,6 +229,14 @@ export const dashboardCopy = {
       perTicket: 'Platos / mesa',
     },
     days: (n: number) => (n === 1 ? '1 día' : `${n} días`),
+    // Cuando los datos salen del cierre de mes (hoja VENTA DIARIA) y no de SmartMenu.
+    perTicketClosing: 'Sugeridos / mesa',
+    closingsNote:
+      'Datos del cierre de mes del local: mesas atendidas y productos sugeridos (cócteles, cervezas, postres, jugos, entradas) por mesera. El cierre no trae venta en $ por mesera, así que el ticket promedio no entra en el puntaje.',
+    noDataRange: 'No hay datos de meseros en estas fechas',
+    noDataRangeText: (from: string, to: string) =>
+      `Los cierres de mes cargados cubren del ${from} al ${to}.`,
+    jumpToClosings: 'Ver esas fechas',
   },
 
   login: {
