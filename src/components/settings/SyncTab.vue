@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
-import LoadingBlock from '@/components/ui/LoadingBlock.vue'
+import LoadError from '@/components/ui/LoadError.vue'
+import SkeletonCards from '@/components/ui/skeleton/SkeletonCards.vue'
 import { useSettingsSync } from '@/composables/useSettingsSync'
 import { inventoryCopy } from '@/config/inventoryCopy'
 import { site } from '@/config/site'
 
 const copy = inventoryCopy.settings.sync
-const { items, loading, load } = useSettingsSync()
+const { items, loading, error, load } = useSettingsSync()
 
 const stamp = new Intl.DateTimeFormat('es-EC', {
   day: 'numeric',
@@ -33,7 +34,14 @@ onMounted(load)
         {{ copy.refresh }}
       </button>
     </div>
-    <LoadingBlock v-if="loading && !items.length" />
+    <SkeletonCards
+      v-if="loading && !items.length"
+      :count="3"
+      basis="260px"
+      :lines="0"
+      min-height="7.6rem"
+    />
+    <LoadError v-else-if="error && !items.length" :message="error" @retry="load" />
     <ul v-else class="sync__list">
       <li
         v-for="s in items"
