@@ -94,12 +94,15 @@ const { byId } = useInventoryIngredients()
 }
 
 .line {
-  @include card;
   @include flex(column, stretch, flex-start, 0.5rem);
   padding: 0.85rem 0.9rem 0.95rem;
+  border: 1px solid $line-soft;
+  border-radius: $radius-ctl;
+  background: rgba($canvas, 0.55);
 
   &--unlinked {
-    border-color: rgba($warning, 0.7);
+    border-color: rgba($warning, 0.6);
+    background: rgba($warning, 0.06);
   }
 
   &__head {
