@@ -252,6 +252,7 @@ export const dashboardCopy = {
     >,
     allBranches: 'Todas',
     passwordTitle: 'Cambiar contraseña',
+    passwordHint: 'Mínimo 8 caracteres',
     current: 'Contraseña actual',
     next: 'Nueva contraseña',
     confirm: 'Repite la nueva',
