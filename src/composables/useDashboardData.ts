@@ -69,7 +69,7 @@ export function useDashboardData<T>(
   const auto = useAutoRefresh(refresh)
 
   watch(
-    () => [filters.ready, filters.queryString] as const,
+    () => [filters.ready, filters.queryString, filters.dataVersion] as const,
     ([ready]) => {
       if (ready) fetchNow(false)
     },
