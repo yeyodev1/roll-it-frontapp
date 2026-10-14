@@ -1,122 +1,177 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import InfoTip from './InfoTip.vue'
-import { formatPercent } from '@/utils/format'
+import DeltaBadge from './DeltaBadge.vue'
+import Sparkline from '@/components/charts/Sparkline.vue'
 
-const props = defineProps<{
-  label: string
-  value: string
-  delta?: number | null
-  help?: string
-  icon?: string
-}>()
+export type KpiTone = 'accent' | 'blue' | 'amber' | 'violet' | 'ink'
 
-// Bajo medio punto no se considera variación: se muestra plano.
-const trend = computed(() => {
-  if (props.delta === null || props.delta === undefined) return null
-  if (Math.abs(props.delta) < 0.005) return 'flat'
-  return props.delta > 0 ? 'up' : 'down'
-})
-
-const arrow = computed(
-  () =>
-    ({
-      up: 'fa-solid fa-arrow-trend-up',
-      down: 'fa-solid fa-arrow-trend-down',
-      flat: 'fa-solid fa-minus',
-    })[trend.value ?? 'flat'],
+/**
+ * Métrica protagonista: etiqueta con (i), ícono en la esquina, cifra grande y
+ * variación con flecha. Opcional: `spark` (tendencia mínima), `sub` (línea
+ * secundaria) y un slot para algo propio debajo (barra de progreso, etc.).
+ */
+withDefaults(
+  defineProps<{
+    label: string
+    value: string
+    delta?: number | null
+    /** Contra qué se compara ("vs anterior"). */
+    deltaLabel?: string
+    help?: string
+    icon?: string
+    tone?: KpiTone
+    spark?: number[]
+    sub?: string
+  }>(),
+  { tone: 'accent', delta: null },
 )
 
-const deltaText = computed(() => formatPercent(Math.abs(props.delta ?? 0)))
-const deltaSr = computed(() =>
-  trend.value === 'down' ? `bajó ${deltaText.value}` : `subió ${deltaText.value}`,
-)
+const SPARK: Record<KpiTone, string> = {
+  accent: 'var(--chart-1)',
+  blue: 'var(--chart-2)',
+  amber: 'var(--chart-3)',
+  violet: 'var(--chart-4)',
+  ink: 'var(--text)',
+}
 </script>
 
 <template>
   <article class="kpi">
     <header class="kpi__head">
-      <i v-if="icon" :class="icon" class="kpi__icon" aria-hidden="true"></i>
-      <span class="kpi__label">{{ label }}</span>
-      <InfoTip v-if="help" :text="help" />
+      <span class="kpi__label">
+        {{ label }}
+        <InfoTip v-if="help" :text="help" />
+      </span>
+      <span v-if="icon" class="kpi__icon" :class="`kpi__icon--${tone}`" aria-hidden="true">
+        <i :class="icon"></i>
+      </span>
     </header>
-    <p class="kpi__value num" :style="{ '--chars': Math.max(value.length, 9) }">{{ value }}</p>
-    <p v-if="trend" class="kpi__delta" :class="`kpi__delta--${trend}`">
-      <i :class="arrow" aria-hidden="true"></i>
-      <span aria-hidden="true">{{ deltaText }}</span>
-      <span class="visually-hidden">{{ deltaSr }}</span>
+
+    <p class="kpi__value" :style="{ '--chars': Math.max(value.length, 8) }">{{ value }}</p>
+
+    <p v-if="delta !== null || sub" class="kpi__meta">
+      <DeltaBadge :value="delta" />
+      <span v-if="deltaLabel && delta !== null" class="kpi__vs">{{ deltaLabel }}</span>
+      <span v-if="sub" class="kpi__sub">{{ sub }}</span>
     </p>
+
+    <div v-if="$slots.default" class="kpi__extra"><slot /></div>
+    <Sparkline
+      v-if="spark && spark.length > 1"
+      class="kpi__spark"
+      :values="spark"
+      :color="SPARK[tone]"
+    />
   </article>
 </template>
 
 <style scoped lang="scss">
 .kpi {
   @include card;
-  @include flex(column, flex-start, flex-start, 0.35rem);
+  @include flex(column, stretch, flex-start, 0.4rem);
   position: relative;
   container-type: inline-size;
-  padding: 0.95rem 1rem 1rem;
+  padding: $sp-4;
   min-width: 0;
+  @include transition(box-shadow);
 
   @include from('md') {
-    padding: 1.25rem 1.35rem 1.3rem;
+    padding: $sp-5 $sp-5 $sp-4;
+  }
+
+  &:hover {
+    box-shadow: $shadow-hover;
   }
 
   &__head {
-    @include flex(row, flex-start, flex-start, 0.4rem);
-    width: 100%;
-    min-height: 1.4rem;
-  }
-
-  &__icon {
-    color: $accent;
-    font-size: 0.8rem;
+    @include flex(row, flex-start, space-between, 0.5rem);
+    min-height: 2.25rem;
   }
 
   &__label {
-    font-size: 0.8rem;
-    font-weight: 500;
-    line-height: 1.25;
-    color: $ink-soft;
+    @include card-label;
+    @include flex(row, center, flex-start, 0.35rem);
+    padding-top: 0.2rem;
     min-width: 0;
   }
 
+  &__icon {
+    @include flex(row, center, center);
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border-radius: $radius-ctl;
+    font-size: 0.82rem;
+
+    @include from('md') {
+      width: 2.25rem;
+      height: 2.25rem;
+      font-size: 0.9rem;
+    }
+
+    &--accent {
+      color: $accent-deep;
+      background: $accent-soft;
+    }
+
+    &--blue {
+      color: $chart-2;
+      background: rgba($chart-2, 0.1);
+    }
+
+    &--amber {
+      color: darken($chart-3, 4%);
+      background: rgba($chart-3, 0.13);
+    }
+
+    &--violet {
+      color: $chart-4;
+      background: rgba($chart-4, 0.11);
+    }
+
+    &--ink {
+      color: $ink;
+      background: $sand;
+    }
+  }
+
   &__value {
-    font-family: $font-display;
-    font-optical-sizing: auto;
-    font-weight: 500;
+    @include figure;
     // La cifra nunca se parte: se achica según el ancho de la tarjeta y sus caracteres.
-    font-size: clamp(1.25rem, calc(100cqi / (var(--chars) * 0.58)), 2.6rem);
-    line-height: 1.05;
-    letter-spacing: -0.025em;
-    color: $ink;
+    font-size: clamp(1.3rem, calc(100cqi / (var(--chars) * 0.62)), 2rem);
     white-space: nowrap;
   }
 
-  &__delta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    margin-top: 0.15rem;
-    padding: 0.18rem 0.55rem;
-    border-radius: $radius-pill;
-    font-size: 0.78rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
+  &__meta {
+    @include flex(row, center, flex-start, 0.4rem);
+    flex-wrap: wrap;
+    min-height: 1.4rem;
+    font-size: 0.75rem;
+  }
 
-    &--up {
-      color: darken($success, 14%);
-      background: $success-bg;
+  &__vs,
+  &__sub {
+    color: $ink-muted;
+  }
+
+  // En el celular basta la flecha: contra qué se compara lo dice el (i).
+  &__vs {
+    @include until('sm') {
+      display: none;
     }
+  }
 
-    &--down {
-      color: darken($danger, 6%);
-      background: $danger-bg;
-    }
+  &__spark {
+    margin-top: auto;
+    padding-top: 0.35rem;
+  }
 
-    &--flat {
-      color: $ink-soft;
-      background: $sand;
+  &__extra {
+    margin-top: auto;
+    padding-top: 0.35rem;
+
+    &:empty {
+      display: none;
     }
   }
 }
