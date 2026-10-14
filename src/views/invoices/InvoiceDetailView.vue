@@ -53,10 +53,18 @@ onMounted(load)
     <div v-else class="detail__body">
       <aside class="detail__photo">
         <InvoiceImage v-if="invoice.imageUrl" :src="invoice.imageUrl" />
+        <div v-else-if="invoice.source === 'closing'" class="nophoto">
+          <i class="fa-solid fa-cash-register" aria-hidden="true"></i>
+          <span>{{ copy.closingPhoto }}</span>
+          <small>{{ copy.closingHint }}</small>
+        </div>
         <div v-else class="nophoto">
           <i class="fa-solid fa-receipt" aria-hidden="true"></i>
           <span>{{ copy.noPhoto }}</span>
         </div>
+        <p v-if="invoice.note" class="inv-note">
+          <i class="fa-solid fa-circle-info" aria-hidden="true"></i> {{ invoice.note }}
+        </p>
         <p v-if="invoice.aiError" class="ai-error">
           <i class="fa-solid fa-robot" aria-hidden="true"></i>
           {{ copy.aiError }} · <span>{{ invoice.aiError }}</span>
@@ -171,9 +179,30 @@ onMounted(load)
   }
   font-size: 0.82rem;
 
+  padding: $sp-4;
+  text-align: center;
+
   i {
     font-size: 1.8rem;
     color: $line;
+  }
+
+  small {
+    max-width: 32ch;
+    font-size: $text-xs;
+  }
+}
+
+.inv-note {
+  @include flex(row, flex-start, flex-start, 0.45rem);
+  margin-top: 0.6rem;
+  font-size: $text-xs;
+  line-height: 1.45;
+  color: $ink-soft;
+
+  i {
+    margin-top: 0.15rem;
+    color: $ink-muted;
   }
 }
 
