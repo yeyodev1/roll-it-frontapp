@@ -1,50 +1,45 @@
 <script setup lang="ts">
-withDefaults(defineProps<{ height?: string; lines?: number }>(), { height: '7rem', lines: 0 })
+import { site } from '@/config/site'
+
+/**
+ * Skeleton genérico: un bloque con la altura del contenido final o, con
+ * `lines`, un párrafo de líneas. Para formas concretas usar ui/skeleton/*.
+ */
+withDefaults(defineProps<{ height?: string; lines?: number; card?: boolean }>(), {
+  height: '7rem',
+  lines: 0,
+  card: false,
+})
 </script>
 
 <template>
-  <div class="skeleton" aria-busy="true" aria-live="polite">
-    <span class="visually-hidden">Cargando…</span>
-    <div v-if="!lines" class="skeleton__block" :style="{ height }"></div>
+  <div class="loading" :class="{ 'loading--card': card }" role="status" aria-busy="true">
+    <span class="visually-hidden">{{ site.ui.loading }}</span>
+    <span v-if="!lines" class="sk loading__block" :style="{ height }" aria-hidden="true"></span>
     <template v-else>
-      <div
+      <span
         v-for="n in lines"
         :key="n"
-        class="skeleton__line"
+        class="sk sk--line"
         :style="{ width: `${100 - (n % 3) * 18}%` }"
-      ></div>
+        aria-hidden="true"
+      ></span>
     </template>
   </div>
 </template>
 
 <style scoped lang="scss">
-.skeleton {
+.loading {
   @include flex(column, stretch, flex-start, 0.6rem);
   width: 100%;
 
-  &__block,
-  &__line {
-    border-radius: $radius-sm;
-    background: linear-gradient(90deg, $sand 0%, lighten($sand, 3%) 50%, $sand 100%);
-    background-size: 200% 100%;
-    animation: shimmer 1.4s ease-in-out infinite;
+  &--card {
+    @include card;
+    padding: 1.1rem;
   }
 
   &__block {
     border-radius: 14px;
-  }
-
-  &__line {
-    height: 0.9rem;
-  }
-}
-
-@keyframes shimmer {
-  from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: -100% 0;
   }
 }
 </style>
