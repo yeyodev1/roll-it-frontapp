@@ -171,6 +171,13 @@ function pick(preset: RangePreset) {
     }
   }
 
+  // En el celular el aviso ocupa la fila: el botón de actualizar queda a la derecha.
+  &__until {
+    @include until('md') {
+      flex: 1 1 100%;
+    }
+  }
+
   &__sync {
     @include flex(row, center, flex-start, 0.45rem);
     min-height: 2rem;
