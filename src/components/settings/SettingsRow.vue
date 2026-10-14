@@ -1,21 +1,31 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { inventoryCopy } from '@/config/inventoryCopy'
 
-defineProps<{ title: string; meta?: string; active?: boolean; badge?: string }>()
+// Fila de una lista de ajustes: inicial, nombre con detalle, estado y el interruptor.
+const props = defineProps<{ title: string; meta?: string; active?: boolean; badge?: string }>()
 const emit = defineEmits<{ edit: []; toggle: [] }>()
 
 const copy = inventoryCopy.settings
+const initial = computed(() => props.title.trim().charAt(0).toUpperCase() || '·')
 </script>
 
 <template>
   <li class="row" :class="{ 'row--off': active === false }">
     <button type="button" class="row__main" @click="emit('edit')">
-      <span class="row__title">
-        {{ title }}
-        <span v-if="badge" class="row__badge">{{ badge }}</span>
+      <span class="row__avatar" aria-hidden="true">{{ initial }}</span>
+      <span class="row__text">
+        <span class="row__title">
+          {{ title }}
+          <span v-if="badge" class="row__badge">{{ badge }}</span>
+        </span>
+        <small v-if="meta" class="row__meta">{{ meta }}</small>
       </span>
-      <small v-if="meta" class="row__meta">{{ meta }}</small>
+      <i class="fa-solid fa-pen row__edit" aria-hidden="true"></i>
     </button>
+    <span v-if="active !== undefined" class="row__state">{{
+      active ? copy.active : copy.inactive
+    }}</span>
     <button
       v-if="active !== undefined"
       type="button"
@@ -34,32 +44,60 @@ const copy = inventoryCopy.settings
 <style scoped lang="scss">
 .row {
   @include flex(row, center, space-between, 0.8rem);
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid $line;
+  padding: 0.7rem $sp-4;
+  border-top: 1px solid $line-soft;
+  @include transition(background-color);
 
-  &:last-child {
-    border-bottom: none;
+  @include from('md') {
+    padding-inline: $sp-6;
   }
 
-  &--off .row__main {
+  &:first-child {
+    border-top: none;
+  }
+
+  &:hover {
+    background: rgba($canvas, 0.6);
+
+    .row__edit {
+      opacity: 1;
+    }
+  }
+
+  &--off .row__text,
+  &--off .row__avatar {
     opacity: 0.5;
   }
 
   &__main {
-    @include flex(column, flex-start, center, 0.1rem);
+    @include flex(row, center, flex-start, 0.75rem);
     flex: 1;
     min-width: 0;
     text-align: left;
+  }
 
-    &:hover .row__title {
-      color: $accent-deep;
-    }
+  &__avatar {
+    @include flex(row, center, center);
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: $radius-ctl;
+    background: $accent-soft;
+    color: $accent-deep;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  &__text {
+    @include flex(column, flex-start, center, 0.05rem);
+    min-width: 0;
   }
 
   &__title {
     @include flex(row, center, flex-start, 0.4rem);
+    font-size: 0.9rem;
     font-weight: 600;
-    @include transition(color);
+    color: $ink;
   }
 
   &__badge {
@@ -72,12 +110,30 @@ const copy = inventoryCopy.settings
   }
 
   &__meta {
-    font-size: $text-xs;
+    font-size: 0.74rem;
     color: $ink-muted;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 100%;
+  }
+
+  &__edit {
+    margin-left: 0.25rem;
+    font-size: 0.7rem;
+    color: $ink-muted;
+    opacity: 0;
+    @include transition(opacity);
+  }
+
+  &__state {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: $ink-muted;
+
+    @include until('md') {
+      display: none;
+    }
   }
 }
 
