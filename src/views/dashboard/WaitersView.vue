@@ -1,71 +1,25 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import KpiCard from '@/components/ui/KpiCard.vue'
+import ChartCard from '@/components/ui/ChartCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import LoadError from '@/components/ui/LoadError.vue'
 import RefreshStamp from '@/components/ui/RefreshStamp.vue'
-import SkeletonCards from '@/components/ui/skeleton/SkeletonCards.vue'
-import WaiterCard from '@/components/dashboard/WaiterCard.vue'
+import SkeletonKpi from '@/components/ui/skeleton/SkeletonKpi.vue'
+import SkeletonChart from '@/components/ui/skeleton/SkeletonChart.vue'
+import SkeletonTable from '@/components/ui/skeleton/SkeletonTable.vue'
+import DonutChart from '@/components/charts/DonutChart.vue'
+import WaiterTable from '@/components/dashboard/WaiterTable.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
-import { dashboardService } from '@/services/dashboard.service'
-import { useDashboardData } from '@/composables/useDashboardData'
+import { useWaiters } from '@/composables/useWaiters'
 import { useFiltersStore } from '@/stores/filters'
-import { formatCents, formatQty } from '@/utils/format'
-import type { WaiterStats } from '@/types'
-
-type View = 'all' | 'attention' | 'top'
 
 const copy = dashboardCopy.waiters
 const filters = useFiltersStore()
-const { data, loading, error, reload, updatedAt, refreshing } = useDashboardData(
-  dashboardService.waiters.bind(dashboardService),
-)
-
-const view = ref<View>('all')
-
-// El ranking se fija por puntaje antes de filtrar: el número de cada uno no cambia al filtrar.
-const ranked = computed(() =>
-  [...(data.value?.waiters ?? [])]
-    .sort((a, b) => b.score - a.score)
-    .map((stats, i) => ({ stats, rank: i + 1 })),
-)
-
-const counts = computed(() => ({
-  all: ranked.value.length,
-  attention: ranked.value.filter((r) => r.stats.level === 'attention').length,
-  top: ranked.value.filter((r) => r.stats.level === 'top').length,
-}))
-
-// Si al cambiar de fechas el filtro queda vacío, se vuelve a ver a todos.
-watch(counts, (c) => {
-  if (!c[view.value]) view.value = 'all'
-})
-
-const visible = computed(() =>
-  view.value === 'all' ? ranked.value : ranked.value.filter((r) => r.stats.level === view.value),
-)
-
-const tabs = computed<{ value: View; label: string; count: number }[]>(() => [
-  { value: 'all', label: copy.all, count: counts.value.all },
-  { value: 'attention', label: copy.attentionFirst, count: counts.value.attention },
-  { value: 'top', label: copy.topOnly, count: counts.value.top },
-])
-
-const team = computed(() => data.value?.teamAvg)
-const teamItems = computed(() =>
-  team.value
-    ? [
-        { label: copy.avgTicket, value: formatCents(team.value.avgTicketCents) },
-        { label: copy.perDay, value: formatQty(team.value.ticketsPerDay) },
-        { label: copy.perTicket, value: formatQty(team.value.itemsPerTicket) },
-      ]
-    : [],
-)
-
-function key(s: WaiterStats) {
-  return `${s.waiter._id}-${s.branch._id}`
-}
+const wt = useWaiters()
+const { data, loading, error, updatedAt, refreshing, view, tabs, team, rows, kpis, levels } = wt
+const { ranked } = wt
 </script>
 
 <template>
@@ -77,118 +31,158 @@ function key(s: WaiterStats) {
     </PageHeader>
 
     <template v-if="loading">
-      <span class="sk wt__sk-team" aria-hidden="true"></span>
-      <SkeletonCards :count="4" basis="300px" :lines="3" min-height="14rem" />
+      <SkeletonKpi :count="4" :delta="false" />
+      <div class="wt__row">
+        <SkeletonTable class="wt__main" :rows="8" :cols="5" />
+        <SkeletonChart class="wt__side" variant="donut" />
+      </div>
     </template>
 
-    <LoadError v-else-if="error && !data" :message="error" @retry="reload" />
+    <LoadError v-else-if="error && !data" :message="error" @retry="wt.reload" />
 
-    <!-- El reporte importado no trae mesero: sin datos en vivo no hay ranking, no ceros. -->
-    <EmptyState
-      v-else-if="data && !ranked.length"
-      icon="fa-solid fa-user-clock"
-      :title="copy.noFeed"
-      :text="copy.noFeedText"
-    />
+    <!-- El reporte de ventas no trae mesero: sin ese dato no hay ranking, no ceros. -->
+    <section v-else-if="data && !ranked.length" class="wt__empty">
+      <EmptyState icon="fa-solid fa-user-clock" :title="copy.noFeed" :text="copy.noFeedText" />
+    </section>
 
     <template v-else-if="data && team">
-      <section class="wt__team">
-        <span class="wt__team-title">{{ copy.teamAvg }}</span>
-        <dl class="wt__team-list">
-          <div v-for="t in teamItems" :key="t.label">
-            <dt>{{ t.label }}</dt>
-            <dd class="num">{{ t.value }}</dd>
-          </div>
-        </dl>
+      <section class="wt__kpis">
+        <KpiCard v-for="k in kpis" :key="k.label" v-bind="k" />
       </section>
 
-      <div class="wt__tabs" role="group">
-        <button
-          v-for="t in tabs"
-          :key="t.value"
-          type="button"
-          class="chip"
-          :aria-pressed="view === t.value"
-          :disabled="!t.count"
-          @click="view = t.value"
-        >
-          {{ t.label }} <span class="wt__count num">{{ t.count }}</span>
-        </button>
+      <div class="wt__row">
+        <ChartCard class="wt__main" :title="copy.ranking" :help="site.help.waiterScore" flush>
+          <template #action>
+            <div class="wt__tabs" role="group">
+              <button
+                v-for="t in tabs"
+                :key="t.value"
+                type="button"
+                class="wt__tab"
+                :aria-pressed="view === t.value"
+                :disabled="!t.count"
+                @click="view = t.value"
+              >
+                {{ t.label }} <span class="num">{{ t.count }}</span>
+              </button>
+            </div>
+          </template>
+          <WaiterTable :rows="rows" />
+        </ChartCard>
+
+        <ChartCard class="wt__side" :title="copy.byLevel" :help="site.help.waiterScore">
+          <DonutChart
+            :items="levels"
+            :center-label="copy.evaluated"
+            :center-value="String(ranked.length)"
+          />
+        </ChartCard>
       </div>
-
-      <section class="wt__list">
-        <WaiterCard
-          v-for="r in visible"
-          :key="key(r.stats)"
-          :stats="r.stats"
-          :rank="r.rank"
-          :team="team"
-        />
-      </section>
     </template>
   </div>
 </template>
 
 <style scoped lang="scss">
 .wt {
-  &__team {
-    @include flex(row, center, space-between, 0.6rem 1.5rem);
-    flex-wrap: wrap;
-    padding: 0.85rem 1rem;
-    border-radius: 14px;
-    background: $sand;
-  }
+  &__kpis {
+    @include flex-cards(150px, $sp-3);
 
-  &__team-title {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: $ink-soft;
-  }
-
-  &__team-list {
-    @include flex(row, center, flex-start, 1.25rem);
-    flex-wrap: wrap;
-
-    div {
-      @include flex(column, flex-start, flex-start);
-    }
-
-    dt {
-      font-size: 0.68rem;
-      color: $ink-muted;
-    }
-
-    dd {
-      font-family: $font-display;
-      font-size: 1.15rem;
-      font-weight: 500;
+    @include from('md') {
+      @include flex-cards(220px, $sp-4);
     }
   }
 
+  &__row {
+    @include flex(column, stretch, flex-start, $sp-3);
+
+    @include from('md') {
+      gap: $sp-4;
+    }
+
+    @include from('lg') {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+  }
+
+  &__main {
+    flex: 2 1 0;
+    min-width: 0;
+
+    // En el celular los filtros bajan a su propia fila y se deslizan sin empujar la página.
+    :deep(.ccard__action) {
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
+
+  &__side {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  &__empty {
+    @include card;
+    padding: $sp-4;
+
+    :deep(.empty) {
+      border: none;
+      background: transparent;
+      padding-block: $sp-8 * 1.5;
+    }
+
+    :deep(.empty__icon) {
+      width: 4rem;
+      height: 4rem;
+      font-size: 1.5rem;
+      background: $accent-soft;
+    }
+
+    :deep(.empty__title) {
+      font-size: 1.05rem;
+    }
+
+    :deep(.empty__text) {
+      max-width: 60ch;
+    }
+  }
+
+  // Control segmentado chico, como el de rangos de la barra de filtros.
   &__tabs {
-    @include flex(row, center, flex-start, 0.4rem);
+    @include flex(row, center, flex-start, 0.1rem);
+    max-width: 100%;
+    padding: 0.2rem;
+    border-radius: $radius-pill;
+    background: $canvas;
     overflow-x: auto;
     scrollbar-width: none;
+  }
 
-    .chip:disabled {
-      opacity: 0.45;
+  &__tab {
+    flex: 0 0 auto;
+    padding: 0.3rem 0.7rem;
+    border-radius: $radius-pill;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: $ink-soft;
+    white-space: nowrap;
+    @include transition(background-color);
+
+    span {
+      margin-left: 0.15rem;
+      opacity: 0.6;
+    }
+
+    &[aria-pressed='true'] {
+      background: $surface;
+      color: $ink;
+      box-shadow: $shadow-sm;
+    }
+
+    &:disabled {
+      opacity: 0.4;
       pointer-events: none;
     }
-  }
-
-  &__count {
-    font-size: 0.72rem;
-    opacity: 0.7;
-  }
-
-  &__list {
-    @include flex-cards(300px, 1rem);
-    align-items: flex-start;
-  }
-
-  &__sk-team {
-    height: 3.6rem;
-    border-radius: 14px;
   }
 }
 </style>
