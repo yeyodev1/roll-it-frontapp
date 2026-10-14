@@ -32,7 +32,7 @@ const widths = [72, 48, 60, 40, 56, 66]
     @include flex(row, center, flex-start, 1rem);
     min-height: 3.1rem;
     padding: 0 1rem;
-    border-bottom: 1px solid $line;
+    border-bottom: 1px solid $line-soft;
 
     &:last-child {
       border-bottom: none;
