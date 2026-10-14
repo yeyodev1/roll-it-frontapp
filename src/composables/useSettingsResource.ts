@@ -24,6 +24,7 @@ export function useSettingsResource<T, F extends object>(options: ResourceOption
   const copy = inventoryCopy.settings
   const items = ref([]) as Ref<T[]>
   const loading = ref(false)
+  const error = ref('')
   const saving = ref(false)
   const sheetOpen = ref(false)
   const editingId = ref<string | null>(null)
@@ -31,10 +32,12 @@ export function useSettingsResource<T, F extends object>(options: ResourceOption
 
   async function load() {
     loading.value = true
+    error.value = ''
     try {
       items.value = await options.load()
     } catch (e) {
-      toast.error((e as ApiError).message)
+      error.value = (e as ApiError).message
+      toast.error(error.value)
     } finally {
       loading.value = false
     }
@@ -92,6 +95,7 @@ export function useSettingsResource<T, F extends object>(options: ResourceOption
   return {
     items,
     loading,
+    error,
     saving,
     sheetOpen,
     editingId,
