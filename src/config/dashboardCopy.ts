@@ -266,6 +266,12 @@ export const dashboardCopy = {
     noDataRangeText: (from: string, to: string) =>
       `Los cierres de mes cargados cubren del ${from} al ${to}.`,
     jumpToClosings: 'Ver esas fechas',
+    serviceTitle: 'Atención en el período',
+    serviceByBranch: 'Atención por sucursal',
+    rankingTitle: 'Ranking por mesera',
+    noRankingRange: 'Sin ranking por mesera en estas fechas',
+    noRankingText: (from: string, to: string) =>
+      `El reporte de SmartMenu no dice qué mesera atendió cada mesa. Solo hay cierres de mes del ${from} al ${to}.`,
   },
 
   login: {
