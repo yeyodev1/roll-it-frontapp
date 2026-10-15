@@ -151,6 +151,8 @@ export const site = {
       'En SmartMenu: Reportes → Ventas detallado → exportar a Excel, y súbelo aquí. Se puede subir el mismo archivo varias veces sin duplicar.',
     recipeCoverage:
       'Parte de los platos activos que tienen receta. Solo esos descuentan insumos del inventario al venderse.',
+    serviceByBranch:
+      'Tickets y ticket promedio de cada sucursal en las fechas elegidas, con las ventas de SmartMenu.',
     sync: 'Las ventas llegan desde el SmartMenu de cada sucursal. Si el equipo del local está apagado, se actualizan cuando se vuelva a prender.',
   },
 } as const
