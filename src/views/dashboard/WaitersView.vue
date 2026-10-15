@@ -10,6 +10,7 @@ import SkeletonChart from '@/components/ui/skeleton/SkeletonChart.vue'
 import SkeletonTable from '@/components/ui/skeleton/SkeletonTable.vue'
 import DonutChart from '@/components/charts/DonutChart.vue'
 import WaiterTable from '@/components/dashboard/WaiterTable.vue'
+import ServiceSummary from '@/components/dashboard/ServiceSummary.vue'
 import { site } from '@/config/site'
 import { dashboardCopy } from '@/config/dashboardCopy'
 import { useWaiters } from '@/composables/useWaiters'
@@ -30,6 +31,8 @@ const { ranked, metrics, fromClosings, perTicketLabel, closings } = wt
       </template>
     </PageHeader>
 
+    <ServiceSummary />
+
     <template v-if="loading">
       <SkeletonKpi :count="4" :delta="false" />
       <div class="wt__row">
@@ -42,7 +45,7 @@ const { ranked, metrics, fromClosings, perTicketLabel, closings } = wt
 
     <!-- Hay cierres de mes cargados, pero en otras fechas: se ofrece ir a ellas. -->
     <section v-else-if="data && !ranked.length && closings" class="wt__empty">
-      <EmptyState icon="fa-solid fa-calendar-days" :title="copy.noDataRange" :text="closings.text">
+      <EmptyState icon="fa-solid fa-user-clock" :title="copy.noRankingRange" :text="closings.text">
         <button type="button" class="btn btn--primary btn--sm" @click="wt.jumpToClosings">
           {{ copy.jumpToClosings }}
         </button>
