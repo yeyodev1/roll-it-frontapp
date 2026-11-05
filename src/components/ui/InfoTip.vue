@@ -4,12 +4,14 @@ import { nextTick, onBeforeUnmount, ref, useId } from 'vue'
 defineProps<{ text: string }>()
 
 const open = ref(false)
-const alignEnd = ref(false)
+const pos = ref<Record<string, string>>({})
 const root = ref<HTMLElement | null>(null)
+const pop = ref<HTMLElement | null>(null)
 const id = useId()
 
 function onDocPointer(event: PointerEvent) {
-  if (root.value && !root.value.contains(event.target as Node)) close()
+  const target = event.target as Node
+  if (!root.value?.contains(target) && !pop.value?.contains(target)) close()
 }
 
 function onKey(event: KeyboardEvent) {
@@ -20,13 +22,21 @@ function listen(on: boolean) {
   const method = on ? 'addEventListener' : 'removeEventListener'
   document[method]('pointerdown', onDocPointer as EventListener)
   document[method]('keydown', onKey as EventListener)
+  // El globo va fijo en la pantalla: si algo se desplaza, se cierra en vez de quedar flotando.
+  window[method]('scroll', close, true)
+  window[method]('resize', close)
 }
 
 async function toggle() {
   if (open.value) return close()
-  // En el borde derecho de la pantalla el globo se abre hacia la izquierda.
   const rect = root.value?.getBoundingClientRect()
-  alignEnd.value = rect ? rect.left > window.innerWidth / 2 : false
+  if (!rect) return
+  // Va al <body> para que una tabla con scroll no lo recorte. En la mitad derecha se abre hacia la izquierda.
+  const top = `${rect.bottom + 7}px`
+  pos.value =
+    rect.left > window.innerWidth / 2
+      ? { top, right: `${window.innerWidth - rect.right - 8}px` }
+      : { top, left: `${rect.left - 8}px` }
   open.value = true
   await nextTick()
   listen(true)
@@ -52,17 +62,13 @@ onBeforeUnmount(() => listen(false))
     >
       <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
     </button>
-    <Transition name="tip">
-      <span
-        v-if="open"
-        :id="id"
-        role="tooltip"
-        class="tip__pop"
-        :class="{ 'tip__pop--end': alignEnd }"
-      >
-        {{ text }}
-      </span>
-    </Transition>
+    <Teleport to="body">
+      <Transition name="tip">
+        <span v-if="open" :id="id" ref="pop" role="tooltip" class="tip__pop" :style="pos">
+          {{ text }}
+        </span>
+      </Transition>
+    </Teleport>
   </span>
 </template>
 
@@ -90,9 +96,7 @@ onBeforeUnmount(() => listen(false))
   }
 
   &__pop {
-    position: absolute;
-    top: calc(100% + 0.45rem);
-    left: -0.5rem;
+    position: fixed;
     z-index: 60;
     width: max-content;
     max-width: min(260px, calc(100vw - 2rem));
@@ -109,11 +113,6 @@ onBeforeUnmount(() => listen(false))
     text-align: left;
     white-space: normal;
     box-shadow: $shadow-md;
-
-    &--end {
-      left: auto;
-      right: -0.5rem;
-    }
   }
 }
 
